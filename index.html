@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ae-book — La marketplace des auteurs independants</title>
+<meta name="description" content="Achetez et vendez des ebooks (PDF/EPUB) directement entre auteurs independants et lecteurs. Verification antivirus automatique, lecture en ligne, paiement securise par Stripe." />
+<meta property="og:title" content="Ae-book — La marketplace des auteurs independants" />
+<meta property="og:description" content="Achetez et vendez des ebooks directement entre auteurs independants et lecteurs, en toute securite." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Ae-book — La marketplace des auteurs independants" />
+<meta name="twitter:description" content="Achetez et vendez des ebooks directement entre auteurs independants et lecteurs, en toute securite." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+</script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:    { DEFAULT: '#1C2B45', 50:'#EAEDF3',100:'#C7D0E1',200:'#9FAECB',300:'#748BAF',400:'#4E6690',500:'#324A70',600:'#233A5C',700:'#1C2B45',800:'#131F32',900:'#0B1220' },
+          paper:  { DEFAULT: '#F3ECDD', 100:'#FBF8F1', 200:'#F3ECDD', 300:'#E9DEC7' },
+          gilt:   { DEFAULT: '#B8873A', 100:'#F1E3C8', 300:'#D9AE68', 500:'#B8873A', 700:'#8C6425' },
+          ok:     { DEFAULT: '#4C7A5D' },
+          err:    { DEFAULT: '#A23B2E' },
+          ink900: '#0B1220'
+        },
+        fontFamily: {
+          display: ['Fraunces', 'serif'],
+          body: ['Inter', 'sans-serif'],
+          mono: ['IBM Plex Mono', 'monospace']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body { background: #F3ECDD; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+  .ribbon {
+    position: relative;
+    padding-left: 1.1rem;
+  }
+  .ribbon::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.15em; bottom: 0.15em;
+    width: 5px;
+    background: #B8873A;
+    border-radius: 2px;
+  }
+  .book-card { transition: transform .18s ease, box-shadow .18s ease; }
+  .book-card:hover { transform: translateY(-4px); box-shadow: 0 14px 28px -12px rgba(28,43,69,0.35); }
+  .spine { background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.12)); }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #C7D0E1; border-radius: 6px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+</style>
+</head>
+<body class="font-body text-ink-800 min-h-screen">
+
+<!-- ============================= CONFIG ============================= -->
+<script>
+  // --- A REMPLIR avant deploiement ---
+  const SUPABASE_URL = "https://bwnsoqbwqvcjnmohndof.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bnNvcWJ3cXZjam5tb2huZG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MDYzNjAsImV4cCI6MjA5ODk4MjM2MH0.lVcbQKOvXIPNT2BuTinue0knHV1P8fVkqrPRSXWKr10";
+  // ------------------------------------
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<!-- ============================= HEADER ============================= -->
+<header class="sticky top-0 z-40 bg-paper-100/90 backdrop-blur border-b border-ink-100">
+  <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+    <button onclick="showTab('marketplace')" class="font-display text-2xl font-600 text-ink-700 tracking-tight">
+      Ae-book<span class="text-gilt-500">.</span>
+    </button>
+    <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-ink-600">
+      <button onclick="showTab('marketplace')" class="hover:text-ink-900">Explorer</button>
+      <button onclick="showTab('seller')" class="hover:text-ink-900">Vendre un livre</button>
+      <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliotheque</button>
+      <button onclick="showTab('messages')" class="hover:text-ink-900 relative">Messagerie<span id="unreadBadge" class="hidden absolute -top-2 -right-3 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
+      <button onclick="showTab('suspended')" class="hover:text-ink-900">Livres suspendus</button>
+      <button onclick="showTab('admin')" id="adminNavBtn" class="hidden hover:text-ink-900 text-err">Admin</button>
+    </nav>
+    <div id="authArea" class="flex items-center gap-3"></div>
+  </div>
+  <nav class="sm:hidden flex justify-around border-t border-ink-100 text-xs font-medium text-ink-600 py-2">
+    <button onclick="showTab('marketplace')">Explorer</button>
+    <button onclick="showTab('seller')">Vendre</button>
+    <button onclick="showTab('library')">Bibliotheque</button>
+  </nav>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 py-10">
+
+  <!-- ============================= AUTH TAB ============================= -->
+  <section id="tab-auth" class="tab max-w-md mx-auto">
+    <div class="bg-paper-100 border border-ink-100 rounded-2xl p-8 shadow-sm">
+      <h2 class="font-display text-2xl font-600 text-ink-800 mb-1" id="authTitle">Se connecter</h2>
+      <p class="text-sm text-ink-500 mb-6">Accede a tes achats et gere tes ventes.</p>
+      <form id="authForm" class="space-y-4">
+        <div>
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Email</label>
+          <input required type="email" id="authEmail" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500" />
+        </div>
+        <div>
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Mot de passe</label>
+          <input required type="password" minlength="6" id="authPassword" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500" />
+          <button type="button" onclick="sendPasswordReset()" id="forgotPasswordBtn" class="text-xs text-ink-500 underline mt-1">Mot de passe oublie ?</button>
+        </div>
+        <div id="cguRow" class="hidden flex items-start gap-2">
+          <input type="checkbox" id="authCgu" class="mt-1" />
+          <label for="authCgu" class="text-sm text-ink-600">
+            J'accepte les <button type="button" onclick="openCguModal()" class="text-gilt-700 underline">Conditions Generales d'Utilisation</button>
+          </label>
+        </div>
+        <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">
+          <span id="authSubmitLabel">Se connecter</span>
+        </button>
+      </form>
+      <p id="authError" class="text-err text-sm mt-3 hidden"></p>
+      <p id="authInfo" class="text-ok text-sm mt-3 hidden"></p>
+      <p class="text-sm text-ink-500 mt-5 text-center">
+        <span id="authSwitchText">Pas encore de compte ?</span>
+        <button onclick="toggleAuthMode()" class="text-gilt-700 font-medium underline" id="authSwitchBtn">Creer un compte</button>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================= RESET PASSWORD TAB ============================= -->
+  <section id="tab-resetPassword" class="tab max-w-md mx-auto">
+    <div class="bg-paper-100 border border-ink-100 rounded-2xl p-8 shadow-sm">
+      <h2 class="font-display text-2xl font-600 text-ink-800 mb-1">Nouveau mot de passe</h2>
+      <p class="text-sm text-ink-500 mb-6">Choisis un nouveau mot de passe pour ton compte.</p>
+      <form id="resetPasswordForm" class="space-y-4">
+        <div>
+          <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Nouveau mot de passe</label>
+          <input required type="password" minlength="6" id="newPassword" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500" />
+        </div>
+        <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Enregistrer</button>
+      </form>
+      <p id="resetPasswordMsg" class="text-sm mt-3"></p>
+    </div>
+  </section>
+
+  <!-- ============================= CGU MODAL ============================= -->
+  <div id="cguModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+    <div class="bg-paper-100 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <p class="font-display text-xl font-600 text-ink-800">Conditions Generales d'Utilisation</p>
+        <button onclick="closeCguModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+      </div>
+      <div class="text-sm text-ink-600 space-y-3 leading-relaxed">
+        <p><strong>1. Objet.</strong> Ae-book est une marketplace permettant a des vendeurs independants de publier et vendre des livres numeriques (PDF/EPUB), et a des acheteurs de les acquerir et les consulter.</p>
+        <p><strong>2. Compte utilisateur.</strong> L'utilisateur est responsable de la confidentialite de ses identifiants et de l'exactitude des informations fournies.</p>
+        <p><strong>3. Obligations du vendeur.</strong> Le vendeur garantit detenir tous les droits necessaires sur les contenus qu'il publie (droits d'auteur, droits de reproduction et de diffusion). Il s'engage a ne publier aucun contenu illicite, contrefaisant, ou portant atteinte aux droits de tiers. Ae-book se reserve le droit de retirer tout contenu signale ou detecte comme non conforme.</p>
+        <p><strong>4. Verification des fichiers.</strong> Chaque fichier publie fait l'objet d'un controle technique et d'un scan antivirus automatise avant mise en vente. Ce controle ne constitue pas une validation du contenu editorial ni une garantie d'absence totale de risque.</p>
+        <p><strong>5. Achat et livraison.</strong> L'achat donne acces a une lecture en ligne et un telechargement du fichier. Le contenu numerique etant delivre immediatement apres paiement, l'acheteur reconnait et accepte expressement, conformement a l'article L221-28 du Code de la consommation, renoncer a son droit de retractation des lors que la lecture ou le telechargement a commence.</p>
+        <p><strong>6. Prix et commission.</strong> Ae-book percoit une commission de 20% sur chaque vente, le solde etant reverse automatiquement au vendeur via Stripe Connect. Les prix sont affiches TTC.</p>
+        <p><strong>7. Paiement.</strong> Les paiements sont traites par Stripe. Ae-book ne stocke aucune donnee bancaire.</p>
+        <p><strong>8. Avis.</strong> Seuls les acheteurs ayant effectivement achete un livre peuvent y laisser un avis. Les avis doivent rester loyaux et respectueux.</p>
+        <p><strong>9. Responsabilite.</strong> Ae-book agit en tant qu'intermediaire technique et n'est pas editeur des contenus vendus par les vendeurs tiers.</p>
+
+        <p><strong>10. Donnees personnelles.</strong></p>
+        <p><em>Responsable du traitement.</em> Ae-book est responsable du traitement des donnees personnelles collectees dans le cadre du service. [A completer : raison sociale, SIRET et adresse une fois l'immatriculation effectuee.]</p>
+        <p><em>Donnees collectees.</em> Email et mot de passe (mot de passe jamais stocke en clair) ; nom affiche et, le cas echeant, nom de plume ; historique des achats et des livres publies ; avis laisses ; signalements effectues. Aucune donnee bancaire n'est collectee ni stockee par Ae-book : les paiements sont geres directement par Stripe.</p>
+        <p><em>Finalites et bases legales.</em> Gestion du compte et des commandes (execution du contrat) ; traitement des paiements et versement aux vendeurs (execution du contrat) ; verification technique et antivirus des fichiers publies, prevention de la fraude (interet legitime) ; envoi des emails transactionnels lies a un achat, une vente ou une publication (execution du contrat) ; respect des obligations comptables et fiscales (obligation legale).</p>
+        <p><em>Destinataires des donnees.</em> Les donnees sont partagees uniquement avec les prestataires necessaires au fonctionnement du service, agissant comme sous-traitants : Supabase (hebergement de la base de donnees et des fichiers), Stripe (traitement des paiements), Brevo (envoi des emails transactionnels), VirusTotal (scan antivirus des fichiers publies, qui recoit uniquement le fichier soumis, pas les donnees de compte). Ae-book ne vend ni ne loue aucune donnee a des tiers a des fins commerciales.</p>
+        <p><em>Transferts hors Union europeenne.</em> Certains prestataires peuvent traiter des donnees en dehors de l'UE ; le cas echeant, ces transferts s'appuient sur les garanties prevues par le RGPD (clauses contractuelles types ou equivalent).</p>
+        <p><em>Duree de conservation.</em> Les donnees du compte sont conservees tant que le compte existe. Les donnees de facturation sont conservees pendant la duree exigee par la reglementation comptable et fiscale en vigueur (en France, 10 ans pour les documents comptables). Un compte supprime entraine la suppression des donnees personnelles non soumises a une obligation de conservation legale.</p>
+        <p><em>Droits des utilisateurs.</em> Conformement au RGPD, chaque utilisateur dispose d'un droit d'acces, de rectification, d'effacement, de limitation, d'opposition et de portabilite sur ses donnees. Ces droits peuvent etre exerces en ecrivant a [adresse email de contact a completer]. En cas de reponse insatisfaisante, l'utilisateur peut saisir la CNIL (www.cnil.fr).</p>
+        <p><em>Cookies.</em> Le site utilise uniquement des cookies techniques necessaires a la connexion et au fonctionnement du compte, sans traceur publicitaire ni cookie de mesure d'audience tiers a ce stade.</p>
+
+        <p><strong>11. Droit applicable.</strong> Les presentes conditions sont soumises au droit francais.</p>
+
+        <p class="text-xs text-ink-400 pt-3 border-t border-ink-100">Document redige par Claude a titre de base de depart ; a faire relire par un professionnel avant mise en ligne reelle, notamment pour completer les informations d'immatriculation et l'adresse de contact RGPD.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function openCguModal() { document.getElementById("cguModal").classList.remove("hidden"); }
+  function closeCguModal() { document.getElementById("cguModal").classList.add("hidden"); }
+  </script>
+
+  <!-- ============================= MARKETPLACE TAB ============================= -->
+  <section id="tab-marketplace" class="tab">
+    <div class="flex items-end justify-between mb-8 flex-wrap gap-4">
+      <div>
+        <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Catalogue</p>
+        <h1 class="font-display text-3xl sm:text-4xl font-600 text-ink-800 mt-1">Des livres, ecrits par leurs auteurs.</h1>
+        <p id="solidarityFundBadge" class="hidden text-sm text-ok mt-2"></p>
+      </div>
+      <div class="flex gap-3 flex-wrap relative">
+        <select id="categoryFilter" onchange="resetPageAndRender()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500">
+          <option value="">Toutes les categories</option>
+        </select>
+        <div class="relative">
+          <button type="button" onclick="toggleLanguageFilterPanel()" id="languageFilterBtn" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm text-left w-40">Toutes les langues</button>
+          <div id="languageFilterPanel" class="hidden absolute z-20 mt-1 bg-white border border-ink-100 rounded-lg shadow-lg p-3 w-48 space-y-1"></div>
+        </div>
+        <select id="ratingFilter" onchange="resetPageAndRender()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500">
+          <option value="0">Toutes les notes</option>
+          <option value="4">★★★★ et plus</option>
+          <option value="3">★★★ et plus</option>
+          <option value="2">★★ et plus</option>
+          <option value="1">★ et plus</option>
+        </select>
+        <input id="searchInput" oninput="debouncedSearch()" placeholder="Rechercher un titre, auteur, description..." class="rounded-lg border border-ink-100 px-4 py-2 bg-white w-64 focus:outline-none focus:ring-2 focus:ring-gilt-500" />
+      </div>
+    </div>
+    <div id="marketplaceGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+    <p id="marketplaceEmpty" class="hidden text-ink-500 text-center py-16">Aucun livre disponible pour le moment.</p>
+    <div id="marketplacePagination" class="hidden flex items-center justify-center gap-4 mt-8"></div>
+  </section>
+
+  <!-- ============================= BOOK DETAIL TAB ============================= -->
+  <section id="tab-detail" class="tab max-w-3xl mx-auto">
+    <button onclick="showTab('marketplace')" class="text-sm text-ink-500 hover:text-ink-800 mb-6">&larr; Retour au catalogue</button>
+    <div id="detailContent" class="bg-paper-100 border border-ink-100 rounded-2xl p-8"></div>
+  </section>
+
+  <!-- ============================= SELLER TAB ============================= -->
+  <section id="tab-seller" class="tab">
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Espace vendeur</p>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Publie et vends ton livre.</h1>
+
+    <div id="stripeStatusBox" class="mb-6 rounded-2xl border border-ink-100 bg-paper-100 p-6 flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <p class="font-medium text-ink-800" id="stripeStatusLabel">Verification du statut Stripe...</p>
+        <p class="text-sm text-ink-500" id="stripeStatusSubtext">Tu recois 80% du prix de vente sur ton compte Stripe. Ae-book garde 20% de commission.</p>
+      </div>
+      <button onclick="connectStripe()" id="stripeConnectBtn" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Connecter Stripe</button>
+    </div>
+
+    <div id="quotaBox" class="mb-8 rounded-2xl border border-ink-100 bg-paper-100 p-6 flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <p class="font-medium text-ink-800" id="quotaLabel">Chargement...</p>
+        <p class="text-sm text-ink-500">100 livres gratuits, puis 1€ le pack de 5 emplacements supplementaires.</p>
+      </div>
+      <button onclick="buySlotPack()" id="buySlotsBtn" class="hidden bg-ink-700 hover:bg-ink-800 text-white font-medium px-5 py-2.5 rounded-lg transition">Acheter 5 emplacements (1€)</button>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-8">
+      <div class="bg-paper-100 border border-ink-100 rounded-2xl p-6">
+        <h2 class="font-display text-xl font-600 mb-4">Publier un nouveau livre</h2>
+
+        <div id="uploadLockedMsg" class="hidden text-center py-10">
+          <p class="text-ink-600 mb-3">Tu dois d'abord connecter et terminer la configuration de ton compte Stripe pour pouvoir publier un livre.</p>
+          <button onclick="connectStripe()" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Connecter Stripe</button>
+        </div>
+
+        <form id="uploadForm" class="space-y-4">
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titre</label>
+            <input required id="bookTitle" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Description</label>
+            <textarea id="bookDescription" rows="3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Prix (EUR)</label>
+              <input required type="number" min="1" step="0.01" id="bookPrice" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Categorie</label>
+              <select required id="bookCategory" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></select>
+            </div>
+            <div>
+              <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Langue</label>
+              <select required id="bookLanguage" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></select>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Nom de l'auteur (affiche publiquement)</label>
+            <input id="bookAuthorName" placeholder="Laisse vide pour utiliser ton pseudo" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Couverture (image, optionnel)</label>
+            <input type="file" accept="image/*" id="bookCover" onchange="onCoverFileChange('book')" class="mt-1 w-full text-sm" />
+            <div id="bookCoverPreviewWrap" class="hidden mt-3">
+              <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaitra dans le catalogue :</p>
+              <div class="spine h-40 w-32 bg-ink-600 rounded-lg overflow-hidden">
+                <img id="bookCoverPreviewImg" class="w-full h-full object-cover" />
+              </div>
+              <div class="mt-2 space-y-2 max-w-xs">
+                <div>
+                  <label class="text-xs text-ink-500">Cadrage horizontal</label>
+                  <input type="range" min="0" max="100" value="50" id="bookCoverPosX" oninput="updateCoverPreview('book')" class="w-full" />
+                </div>
+                <div>
+                  <label class="text-xs text-ink-500">Cadrage vertical</label>
+                  <input type="range" min="0" max="100" value="50" id="bookCoverPosY" oninput="updateCoverPreview('book')" class="w-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Extrait gratuit (pages lisibles avant achat)</label>
+            <input type="number" min="0" max="50" value="0" id="bookFreePreviewPages" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+            <p class="text-xs text-ink-500 mt-1">0 = pas d'extrait. Les visiteurs pourront lire ce nombre de pages avant d'acheter.</p>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Fichier du livre (PDF ou EPUB)</label>
+            <input required type="file" accept=".pdf,.epub" id="bookFile" class="mt-1 w-full text-sm" />
+            <button type="button" onclick="previewSelectedBook()" class="mt-2 text-sm font-medium text-gilt-700 underline">Voir un apercu avant de publier</button>
+          </div>
+          <button type="submit" id="uploadBtn" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Publier (verification automatique)</button>
+        </form>
+        <p id="uploadMsg" class="text-sm mt-3"></p>
+      </div>
+
+      <div>
+        <h2 class="font-display text-xl font-600 mb-4">Mes livres</h2>
+        <div id="myBooksList" class="space-y-3"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= LIBRARY TAB ============================= -->
+  <section id="tab-library" class="tab">
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Achats</p>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Ma bibliotheque.</h1>
+    <div id="libraryList" class="space-y-3"></div>
+    <p id="libraryEmpty" class="hidden text-ink-500 text-center py-16">Tu n'as encore achete aucun livre.</p>
+  </section>
+
+  <!-- ============================= MESSAGERIE TAB ============================= -->
+  <section id="tab-messages" class="tab">
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+      <div>
+        <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Messagerie</p>
+        <h1 class="font-display text-3xl font-600 text-ink-800 mt-1">Mes messages.</h1>
+      </div>
+      <button onclick="openComposeModal(true)" class="bg-ink-700 hover:bg-ink-800 text-white font-medium px-4 py-2 rounded-lg">Contacter l'admin</button>
+    </div>
+    <div id="messagesList" class="space-y-3"></div>
+    <p id="messagesEmpty" class="hidden text-ink-500 text-center py-16">Aucun message pour le moment.</p>
+  </section>
+
+  <!-- ============================= LIVRES SUSPENDUS TAB ============================= -->
+  <section id="tab-suspended" class="tab">
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Solidarite</p>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-2">Livres suspendus.</h1>
+    <p class="text-ink-600 mb-6 max-w-2xl">Comme un cafe suspendu : quelqu'un a paye un exemplaire en plus pour l'offrir a un inconnu. Tu peux en reclamer un gratuitement, sans justificatif — sois juste raisonnable, la place est limitee pour que ca profite au plus grand nombre.</p>
+    <div id="suspendedGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+    <p id="suspendedEmpty" class="hidden text-ink-500 text-center py-16">Aucun livre suspendu disponible pour le moment. Reviens plus tard, ou sois le premier a en offrir un !</p>
+  </section>
+
+  <!-- ============================= ADMIN TAB ============================= -->
+  <section id="tab-admin" class="tab">
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-err">Reserve aux administrateurs</p>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Moderation.</h1>
+
+    <div class="flex gap-2 mb-6 border-b border-ink-100">
+      <button onclick="showAdminSection('books')" id="adminTabBooks" class="px-4 py-2 font-medium text-sm border-b-2 border-ink-700">Livres</button>
+      <button onclick="showAdminSection('reports')" id="adminTabReports" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Signalements</button>
+      <button onclick="showAdminSection('reviews')" id="adminTabReviews" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Avis</button>
+      <button onclick="showAdminSection('messages')" id="adminTabMessages" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500 relative">Messages<span id="adminUnreadBadge" class="hidden absolute -top-1 -right-2 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
+      <button onclick="showAdminSection('errors')" id="adminTabErrors" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Erreurs</button>
+    </div>
+
+    <div id="adminBooksSection">
+      <div id="fundBanner" class="mb-4 rounded-xl border border-ink-100 bg-paper-100 p-4 text-sm text-ink-600"></div>
+      <div id="adminBooksList" class="space-y-3"></div>
+    </div>
+    <div id="adminReportsSection" class="hidden">
+      <div id="adminReportsList" class="space-y-3"></div>
+    </div>
+    <div id="adminReviewsSection" class="hidden">
+      <div id="adminReviewsList" class="space-y-3"></div>
+    </div>
+    <div id="adminMessagesSection" class="hidden">
+      <div id="adminMessagesList" class="space-y-3"></div>
+    </div>
+    <div id="adminErrorsSection" class="hidden">
+      <div id="adminErrorsList" class="space-y-2"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================= PREVIEW MODAL ============================= -->
+<div id="previewModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-2xl h-[85vh] relative overflow-hidden flex flex-col">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
+      <p class="font-display font-600 text-ink-800">Apercu du livre</p>
+      <button onclick="closePreview()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <div id="previewContainer" class="flex-1 overflow-hidden"></div>
+  </div>
+</div>
+
+<script>
+// Etat du lecteur (partage entre l'apercu vendeur et la lecture bibliotheque)
+const readerState = { pdfDoc: null, pageNum: 1, numPages: 0, epubRendition: null, format: null, maxPages: null, epubTurns: 0 };
+
+function spinnerMarkup(message) {
+  return `
+    <div class="flex flex-col items-center gap-3 text-paper-100">
+      <div class="w-9 h-9 border-4 border-paper-100/30 border-t-paper-100 rounded-full animate-spin"></div>
+      <p id="readerLoadingMsg" class="text-sm">${message}</p>
+    </div>
+  `;
+}
+
+// Affiche tout de suite un etat de chargement (avant meme d'avoir l'URL du
+// fichier), pour eviter que l'ecran paraisse fige sur un gros livre.
+function showReaderLoading(message) {
+  document.getElementById("previewModal").classList.remove("hidden");
+  document.getElementById("previewContainer").innerHTML = `
+    <div class="w-full h-full flex items-center justify-center bg-ink-900">${spinnerMarkup(message)}</div>
+  `;
+}
+
+function updateReaderLoading(message) {
+  const el = document.getElementById("readerLoadingMsg");
+  if (el) el.textContent = message;
+}
+
+function readerModalMarkup() {
+  return `
+    <div class="w-full h-full flex flex-col bg-ink-900">
+      <div id="readerCanvasWrap" class="flex-1 overflow-auto flex items-center justify-center p-2">${spinnerMarkup("Preparation de la lecture...")}</div>
+      <div class="flex items-center justify-center gap-4 py-2.5 bg-ink-800 text-paper-100 text-sm shrink-0">
+        <button onclick="readerPrevPage()" class="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 rounded-lg font-medium">&larr; Page precedente</button>
+        <span id="readerPageIndicator" class="font-mono">...</span>
+        <button onclick="readerNextPage()" class="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 rounded-lg font-medium">Page suivante &rarr;</button>
+      </div>
+    </div>
+  `;
+}
+
+async function openReader(url, format, errorLabel, maxPages) {
+  const container = document.getElementById("previewContainer");
+  document.getElementById("previewModal").classList.remove("hidden");
+  readerState.pdfDoc = null; readerState.epubRendition = null; readerState.pageNum = 1; readerState.numPages = 0;
+  readerState.format = format;
+  readerState.maxPages = maxPages || null;
+  readerState.epubTurns = 0;
+
+  if (format === "pdf") {
+    container.innerHTML = readerModalMarkup();
+    try {
+      const loadingTask = pdfjsLib.getDocument(url);
+      readerState.pdfDoc = await loadingTask.promise;
+      readerState.numPages = readerState.pdfDoc.numPages;
+      await renderPdfPage();
+    } catch (e) {
+      container.innerHTML = `<p class="p-6 text-ink-600">${errorLabel} : ${e.message}</p>`;
+    }
+  } else if (format === "epub") {
+    container.innerHTML = readerModalMarkup();
+    const wrap = document.getElementById("readerCanvasWrap");
+    wrap.innerHTML = `<div id="epubViewer" class="w-full h-full"></div>`;
+    try {
+      const epubBook = ePub(url);
+      const rendition = epubBook.renderTo("epubViewer", { width: "100%", height: "100%" });
+      readerState.epubRendition = rendition;
+      await rendition.display();
+      epubBook.locations.generate(1000).then(() => {
+        document.getElementById("readerPageIndicator").textContent =
+          `${Math.round(epubBook.locations.percentageFromCfi(rendition.currentLocation().start.cfi) * 100)}%`;
+      }).catch(() => {});
+      rendition.on("relocated", (loc) => {
+        const pct = epubBook.locations.total ? Math.round(epubBook.locations.percentageFromCfi(loc.start.cfi) * 100) : null;
+        document.getElementById("readerPageIndicator").textContent = pct !== null ? `${pct}%` : "";
+      });
+    } catch (e) {
+      container.innerHTML = `<p class="p-6 text-ink-600">${errorLabel} : ${e.message}</p>`;
+    }
+  } else {
+    container.innerHTML = `<p class="p-6 text-ink-600">Lecture non disponible pour ce format.</p>`;
+  }
+}
+
+async function renderPdfPage() {
+  const page = await readerState.pdfDoc.getPage(readerState.pageNum);
+  const wrap = document.getElementById("readerCanvasWrap");
+  const unscaled = page.getViewport({ scale: 1 });
+  const scale = Math.min((wrap.clientWidth - 16) / unscaled.width, (wrap.clientHeight - 16) / unscaled.height, 2.5);
+  const viewport = page.getViewport({ scale: Math.max(scale, 0.4) });
+
+  wrap.innerHTML = `<canvas id="readerCanvas"></canvas>`;
+  const canvas = document.getElementById("readerCanvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  canvas.className = "shadow-2xl rounded";
+  await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+
+  const limitSuffix = readerState.maxPages ? ` (extrait : ${readerState.maxPages} pages max)` : "";
+  document.getElementById("readerPageIndicator").textContent = `Page ${readerState.pageNum} / ${readerState.numPages}${limitSuffix}`;
+}
+
+function showPreviewLimitReached() {
+  const wrap = document.getElementById("readerCanvasWrap");
+  wrap.innerHTML = `
+    <div class="flex flex-col items-center gap-3 text-paper-100 text-center px-6">
+      <p class="text-lg font-display">Fin de l'extrait gratuit</p>
+      <p class="text-sm text-paper-100/80">Achete le livre pour continuer la lecture.</p>
+      <button onclick="closePreview()" class="mt-2 bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg">Retour a la fiche du livre</button>
+    </div>
+  `;
+}
+
+function readerNextPage() {
+  if (readerState.format === "pdf") {
+    if (readerState.maxPages && readerState.pageNum >= readerState.maxPages) { showPreviewLimitReached(); return; }
+    if (readerState.pageNum < readerState.numPages) { readerState.pageNum++; renderPdfPage(); }
+  } else if (readerState.format === "epub" && readerState.epubRendition) {
+    if (readerState.maxPages && readerState.epubTurns >= readerState.maxPages) { showPreviewLimitReached(); return; }
+    readerState.epubTurns++;
+    readerState.epubRendition.next();
+  }
+}
+
+function readerPrevPage() {
+  if (readerState.format === "pdf") {
+    if (readerState.pageNum > 1) { readerState.pageNum--; renderPdfPage(); }
+  } else if (readerState.format === "epub" && readerState.epubRendition) {
+    if (readerState.epubTurns > 0) readerState.epubTurns--;
+    readerState.epubRendition.prev();
+  }
+}
+
+function previewSelectedBook() {
+  const fileInput = document.getElementById("bookFile");
+  const file = fileInput.files[0];
+  if (!file) { alert("Choisis d'abord un fichier PDF ou EPUB a apercevoir."); return; }
+  const ext = file.name.split(".").pop().toLowerCase();
+  const blobUrl = URL.createObjectURL(file);
+  openReader(blobUrl, ext === "pdf" || ext === "epub" ? ext : null, "Impossible d'afficher l'apercu");
+}
+
+function closePreview() {
+  document.getElementById("previewModal").classList.add("hidden");
+  document.getElementById("previewContainer").innerHTML = "";
+  if (readerState.epubRendition) { readerState.epubRendition.destroy(); }
+  readerState.pdfDoc = null; readerState.epubRendition = null;
+}
+</script>
+
+<!-- ============================= EDIT BOOK MODAL ============================= -->
+<div id="editModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-xl font-600 text-ink-800">Modifier le livre</p>
+      <button onclick="closeEditBook()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <form id="editForm" class="space-y-4">
+      <input type="hidden" id="editBookId" />
+      <input type="hidden" id="editOldFilePath" />
+      <input type="hidden" id="editOldChunkPaths" />
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Titre</label>
+        <input required id="editTitle" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Auteur</label>
+        <input id="editAuthorName" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Description</label>
+        <textarea id="editDescription" rows="3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Categorie</label>
+        <select id="editCategory" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Langue</label>
+        <select id="editLanguage" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Prix (EUR)</label>
+        <input required type="number" min="1" step="0.01" id="editPrice" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Couverture</label>
+        <input type="file" accept="image/*" id="editCover" onchange="onCoverFileChange('edit')" class="mt-1 w-full text-sm" />
+        <p class="text-xs text-ink-500 mt-1">Choisis un fichier pour la remplacer, ou ajuste juste le cadrage de celle deja en ligne ci-dessous.</p>
+        <div id="editCoverPreviewWrap" class="hidden mt-3">
+          <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaitra dans le catalogue :</p>
+          <div class="spine h-40 w-32 bg-ink-600 rounded-lg overflow-hidden">
+            <img id="editCoverPreviewImg" class="w-full h-full object-cover" />
+          </div>
+          <div class="mt-2 space-y-2 max-w-xs">
+            <div>
+              <label class="text-xs text-ink-500">Cadrage horizontal</label>
+              <input type="range" min="0" max="100" value="50" id="editCoverPosX" oninput="updateCoverPreview('edit')" class="w-full" />
+            </div>
+            <div>
+              <label class="text-xs text-ink-500">Cadrage vertical</label>
+              <input type="range" min="0" max="100" value="50" id="editCoverPosY" oninput="updateCoverPreview('edit')" class="w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Extrait gratuit (pages lisibles avant achat)</label>
+        <input type="number" min="0" max="50" id="editFreePreviewPages" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+        <p class="text-xs text-ink-500 mt-1">0 = pas d'extrait.</p>
+      </div>
+      <div class="border-t border-ink-100 pt-4">
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Remplacer le contenu du livre (PDF/EPUB, optionnel)</label>
+        <input type="file" accept=".pdf,.epub" id="editBookFile" class="mt-1 w-full text-sm" />
+        <p class="text-xs text-ink-500 mt-1">Remplacer le fichier relance automatiquement la verification technique et le scan antivirus. Le livre repasse temporairement en attente le temps du controle.</p>
+      </div>
+      <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Enregistrer</button>
+      <p id="editMsg" class="text-sm text-err"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+function populateEditCategorySelect() {
+  const sel = document.getElementById("editCategory");
+  sel.innerHTML = Object.entries(CATEGORIES).map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+  const langSel = document.getElementById("editLanguage");
+  langSel.innerHTML = Object.entries(LANGUAGES).map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+}
+</script>
+
+<!-- ============================= REVIEW MODAL ============================= -->
+<div id="reviewModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-xl font-600 text-ink-800">Ton avis</p>
+      <button onclick="closeReviewModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <form id="reviewForm" class="space-y-4">
+      <input type="hidden" id="reviewBookId" />
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Note</label>
+        <div id="starPicker" class="flex gap-1 mt-1 text-3xl"></div>
+        <input type="hidden" id="reviewRating" required />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Commentaire (optionnel)</label>
+        <textarea id="reviewComment" rows="3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+      </div>
+      <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Publier l'avis</button>
+      <p id="reviewMsg" class="text-sm text-err"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+function renderStarPicker(selected) {
+  const picker = document.getElementById("starPicker");
+  picker.innerHTML = [1, 2, 3, 4, 5].map(n => `
+    <button type="button" onclick="setReviewRating(${n})" class="${n <= selected ? "text-gilt-500" : "text-ink-200"}" data-star="${n}">★</button>
+  `).join("");
+}
+
+function setReviewRating(n) {
+  document.getElementById("reviewRating").value = n;
+  renderStarPicker(n);
+}
+
+function openReviewModal(bookId, existing) {
+  document.getElementById("reviewBookId").value = bookId;
+  document.getElementById("reviewComment").value = existing?.comment || "";
+  setReviewRating(existing?.rating || 0);
+  document.getElementById("reviewMsg").textContent = "";
+  document.getElementById("reviewModal").classList.remove("hidden");
+}
+
+function closeReviewModal() {
+  document.getElementById("reviewModal").classList.add("hidden");
+}
+
+document.getElementById("reviewForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const bookId = document.getElementById("reviewBookId").value;
+  const rating = parseInt(document.getElementById("reviewRating").value || "0");
+  const comment = document.getElementById("reviewComment").value.trim();
+  const msg = document.getElementById("reviewMsg");
+
+  if (!rating) { msg.textContent = "Choisis une note de 1 a 5 etoiles."; return; }
+
+  const { error } = await sb.from("reviews").upsert(
+    { book_id: bookId, buyer_id: currentUser.id, rating, comment: comment || null, updated_at: new Date().toISOString() },
+    { onConflict: "book_id,buyer_id" }
+  );
+  if (error) { msg.textContent = error.message; return; }
+
+  closeReviewModal();
+  loadLibrary();
+});
+</script>
+
+<!-- ============================= REPORT MODAL ============================= -->
+<div id="reportModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-xl font-600 text-ink-800">Signaler ce livre</p>
+      <button onclick="closeReportModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <form id="reportForm" class="space-y-4">
+      <input type="hidden" id="reportBookId" />
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Motif</label>
+        <select required id="reportReason" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white">
+          <option value="plagiat">Plagiat</option>
+          <option value="contenu_inapproprie">Contenu inapproprie</option>
+          <option value="contrefacon">Contrefacon / droits d'auteur</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Details (optionnel)</label>
+        <textarea id="reportDetails" rows="4" placeholder="Explique le probleme le plus precisement possible..." class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+      </div>
+      <button type="submit" id="reportSubmitBtn" class="w-full bg-err hover:opacity-90 text-white font-medium py-2.5 rounded-lg transition">Envoyer le signalement</button>
+      <p id="reportMsg" class="text-sm"></p>
+    </form>
+  </div>
+</div>
+
+<script>
+function openReportModal(bookId) {
+  if (!currentUser) { showTab("auth"); return; }
+  document.getElementById("reportBookId").value = bookId;
+  document.getElementById("reportDetails").value = "";
+  document.getElementById("reportReason").value = "plagiat";
+  document.getElementById("reportMsg").textContent = "";
+  document.getElementById("reportModal").classList.remove("hidden");
+}
+
+function closeReportModal() {
+  document.getElementById("reportModal").classList.add("hidden");
+}
+
+document.getElementById("reportForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("reportSubmitBtn");
+  const msg = document.getElementById("reportMsg");
+  btn.disabled = true;
+  btn.textContent = "Envoi...";
+
+  const { error } = await invokeEdge("submit-report", {
+    book_id: document.getElementById("reportBookId").value,
+    reason: document.getElementById("reportReason").value,
+    details: document.getElementById("reportDetails").value.trim(),
+  });
+
+  btn.disabled = false;
+  btn.textContent = "Envoyer le signalement";
+
+  if (error) {
+    msg.className = "text-sm text-err";
+    msg.textContent = error;
+    return;
+  }
+  msg.className = "text-sm text-ok";
+  msg.textContent = "Signalement envoye, merci.";
+  setTimeout(closeReportModal, 1500);
+});
+</script>
+
+<!-- ============================= COMPOSE MESSAGE MODAL ============================= -->
+<div id="composeModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-xl font-600 text-ink-800" id="composeTitle">Nouveau message</p>
+      <button onclick="closeComposeModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <form id="composeForm" class="space-y-4">
+      <input type="hidden" id="composeIsAdmin" />
+      <input type="hidden" id="composeRecipientId" />
+      <input type="hidden" id="composeBookId" />
+      <input type="hidden" id="composeParentId" />
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Objet</label>
+        <input required id="composeSubject" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Message</label>
+        <textarea required id="composeBody" rows="5" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+      </div>
+      <button type="submit" id="composeSubmitBtn" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Envoyer</button>
+      <p id="composeMsg" class="text-sm"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============================= READ MESSAGE MODAL ============================= -->
+<div id="readMessageModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-xl font-600 text-ink-800" id="readMessageSubject"></p>
+      <button onclick="closeReadMessageModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <p class="text-xs text-ink-400 mb-3" id="readMessageMeta"></p>
+    <p class="text-sm text-ink-700 whitespace-pre-line break-words" id="readMessageBody"></p>
+    <button onclick="replyToOpenMessage()" id="replyBtn" class="hidden mt-4 text-sm font-medium text-gilt-700 underline">Repondre</button>
+  </div>
+</div>
+
+<script>
+let openMessageContext = null; // message actuellement affiche dans la modale de lecture
+
+function openComposeModal(toAdmin, recipientId, recipientLabel, bookId, parentMessageId, prefillSubject) {
+  if (!currentUser) { showTab("auth"); return; }
+  document.getElementById("composeIsAdmin").value = toAdmin ? "1" : "0";
+  document.getElementById("composeRecipientId").value = recipientId || "";
+  document.getElementById("composeBookId").value = bookId || "";
+  document.getElementById("composeParentId").value = parentMessageId || "";
+  document.getElementById("composeTitle").textContent = toAdmin ? "Contacter l'admin" : `Contacter ${recipientLabel || "l'auteur"}`;
+  document.getElementById("composeSubject").value = prefillSubject || "";
+  document.getElementById("composeBody").value = "";
+  document.getElementById("composeMsg").textContent = "";
+  document.getElementById("composeModal").classList.remove("hidden");
+}
+
+function closeComposeModal() {
+  document.getElementById("composeModal").classList.add("hidden");
+}
+
+document.getElementById("composeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("composeSubmitBtn");
+  const msg = document.getElementById("composeMsg");
+  btn.disabled = true;
+  btn.textContent = "Envoi...";
+
+  const isAdmin = document.getElementById("composeIsAdmin").value === "1";
+  const parentId = document.getElementById("composeParentId").value;
+  const payload = {
+    sender_id: currentUser.id,
+    is_admin_message: isAdmin,
+    subject: document.getElementById("composeSubject").value.trim(),
+    body: document.getElementById("composeBody").value.trim(),
+  };
+  if (!isAdmin) {
+    payload.recipient_id = document.getElementById("composeRecipientId").value;
+    if (document.getElementById("composeBookId").value) payload.book_id = document.getElementById("composeBookId").value;
+    if (parentId) payload.parent_message_id = parentId;
+  }
+
+  const { error } = await sb.from("messages").insert(payload);
+
+  btn.disabled = false;
+  btn.textContent = "Envoyer";
+
+  if (error) {
+    msg.className = "text-sm text-err";
+    msg.textContent = error.message.replace(/^MUST_OWN_BOOK:\s*/, "");
+    return;
+  }
+  msg.className = "text-sm text-ok";
+  msg.textContent = "Message envoye !";
+  setTimeout(closeComposeModal, 1200);
+});
+
+function openReadMessageModal(subject, body, meta) {
+  document.getElementById("readMessageSubject").textContent = subject;
+  document.getElementById("readMessageBody").textContent = body;
+  document.getElementById("readMessageMeta").textContent = meta;
+  document.getElementById("readMessageModal").classList.remove("hidden");
+}
+
+function closeReadMessageModal() {
+  document.getElementById("readMessageModal").classList.add("hidden");
+  document.getElementById("replyBtn").classList.add("hidden");
+  openMessageContext = null;
+}
+
+function replyToOpenMessage() {
+  if (!openMessageContext) return;
+  const { id, senderId, senderLabel, subject } = openMessageContext;
+  closeReadMessageModal();
+  const replySubject = subject.startsWith("Re: ") ? subject : `Re: ${subject}`;
+  openComposeModal(false, senderId, senderLabel, null, id, replySubject);
+}
+</script>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentUser = null;
+let currentProfile = null;
+let allLiveBooks = [];
+let authMode = "login"; // or "signup"
+
+const STATUS_LABEL = {
+  pending:  { text: "En attente de verification", color: "#B8873A" },
+  scanning: { text: "Scan de securite en cours",   color: "#B8873A" },
+  rejected: { text: "Rejete",                        color: "#A23B2E" },
+  live:     { text: "En vente",                      color: "#4C7A5D" },
+  unlisted: { text: "Retire de la vente",            color: "#748BAF" },
+};
+
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  if (name === "marketplace") renderMarketplace();
+  if (name === "seller") loadSellerData();
+  if (name === "library") loadLibrary();
+  if (name === "messages") loadMyMessages();
+  if (name === "suspended") loadSuspendedBooks();
+  if (name === "admin") loadAdminBooks();
+}
+
+function money(cents, currency = "EUR") {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(cents / 100);
+}
+
+const CATEGORIES = {
+  roman: "Roman",
+  jeunesse: "Jeunesse",
+  cuisine: "Cuisine",
+  business: "Business & entrepreneuriat",
+  developpement_personnel: "Developpement personnel",
+  informatique: "Informatique & tech",
+  bien_etre_sante: "Bien-etre & sante",
+  histoire: "Histoire",
+  poesie: "Poesie",
+  autre: "Autre",
+};
+
+const LANGUAGES = {
+  fr: "Francais",
+  en: "Anglais",
+  es: "Espagnol",
+  de: "Allemand",
+  it: "Italien",
+  pt: "Portugais",
+  other: "Autre",
+};
+
+// Appelle une Edge Function et remonte toujours un message d'erreur clair,
+// meme quand la fonction repond avec un statut HTTP non-2xx.
+async function invokeEdge(name, body) {
+  const { data, error } = await sb.functions.invoke(name, { body });
+  if (error) {
+    let message = error.message || "Une erreur est survenue.";
+    try {
+      if (error.context && typeof error.context.json === "function") {
+        const parsed = await error.context.json();
+        if (parsed?.error) message = parsed.error;
+      }
+    } catch (_) { /* pas de corps JSON exploitable, on garde le message par defaut */ }
+    return { data: null, error: message };
+  }
+  if (data?.error) return { data: null, error: data.error };
+  return { data, error: null };
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function toggleAuthMode() {
+  authMode = authMode === "login" ? "signup" : "login";
+  document.getElementById("authTitle").textContent = authMode === "login" ? "Se connecter" : "Creer un compte";
+  document.getElementById("authSubmitLabel").textContent = authMode === "login" ? "Se connecter" : "Creer mon compte";
+  document.getElementById("authSwitchText").textContent = authMode === "login" ? "Pas encore de compte ?" : "Deja un compte ?";
+  document.getElementById("authSwitchBtn").textContent = authMode === "login" ? "Creer un compte" : "Se connecter";
+  document.getElementById("cguRow").classList.toggle("hidden", authMode !== "signup");
+  document.getElementById("forgotPasswordBtn").classList.toggle("hidden", authMode !== "login");
+  document.getElementById("authInfo").classList.add("hidden");
+}
+
+document.getElementById("authForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const errEl = document.getElementById("authError");
+  errEl.classList.add("hidden");
+  document.getElementById("authInfo").classList.add("hidden");
+
+  if (authMode === "signup" && !document.getElementById("authCgu").checked) {
+    errEl.textContent = "Tu dois accepter les Conditions Generales d'Utilisation pour creer un compte.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+
+  const { error } = authMode === "login"
+    ? await sb.auth.signInWithPassword({ email, password })
+    : await sb.auth.signUp({ email, password });
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.classList.remove("hidden");
+    return;
+  }
+  showTab("marketplace");
+});
+
+async function sendPasswordReset() {
+  const email = document.getElementById("authEmail").value.trim();
+  const errEl = document.getElementById("authError");
+  const infoEl = document.getElementById("authInfo");
+  errEl.classList.add("hidden");
+  infoEl.classList.add("hidden");
+
+  if (!email) {
+    errEl.textContent = "Renseigne ton email ci-dessus, puis clique a nouveau sur ce lien.";
+    errEl.classList.remove("hidden");
+    return;
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.classList.remove("hidden");
+    return;
+  }
+  infoEl.textContent = "Email envoye ! Verifie ta boite mail (et les spams) pour reinitialiser ton mot de passe.";
+  infoEl.classList.remove("hidden");
+}
+
+document.getElementById("resetPasswordForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const newPassword = document.getElementById("newPassword").value;
+  const msg = document.getElementById("resetPasswordMsg");
+  const { error } = await sb.auth.updateUser({ password: newPassword });
+  if (error) {
+    msg.className = "text-sm mt-3 text-err";
+    msg.textContent = error.message;
+    return;
+  }
+  msg.className = "text-sm mt-3 text-ok";
+  msg.textContent = "Mot de passe mis a jour !";
+  history.replaceState(null, "", window.location.pathname); // retire le hash de recuperation
+  setTimeout(() => showTab("marketplace"), 1200);
+});
+
+async function signOut() {
+  await sb.auth.signOut();
+  showTab("marketplace");
+}
+
+function renderAuthArea() {
+  const area = document.getElementById("authArea");
+  if (currentUser) {
+    area.innerHTML = `
+      <span class="hidden sm:inline text-sm text-ink-600">${currentProfile?.display_name ?? currentUser.email}</span>
+      <button onclick="signOut()" class="text-sm font-medium text-ink-600 hover:text-err">Deconnexion</button>
+    `;
+  } else {
+    area.innerHTML = `<button onclick="showTab('auth')" class="bg-ink-700 hover:bg-ink-800 text-white text-sm font-medium px-4 py-2 rounded-lg">Se connecter</button>`;
+  }
+}
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === "PASSWORD_RECOVERY") {
+    showTab("resetPassword");
+    return;
+  }
+  currentUser = session?.user ?? null;
+  if (currentUser) {
+    const { data } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
+    currentProfile = data;
+  } else {
+    currentProfile = null;
+  }
+  renderAuthArea();
+  updateAdminNavVisibility();
+  updateUnreadBadge();
+  updateAdminUnreadBadge();
+});
+
+// ============================================================
+// MARKETPLACE
+// ============================================================
+let ratingsByBook = {};
+
+async function loadRatings() {
+  const { data } = await sb.from("book_rating_stats").select("*");
+  ratingsByBook = {};
+  for (const r of data ?? []) ratingsByBook[r.book_id] = r;
+}
+
+let solidarityFundLoaded = false;
+async function loadSolidarityFund() {
+  if (solidarityFundLoaded) return; // le total change peu, pas besoin de le recharger a chaque filtre
+  const { data } = await sb.from("solidarity_fund_stats").select("*").single();
+  const badge = document.getElementById("solidarityFundBadge");
+  if (data && data.total_raised_cents > 0) {
+    badge.textContent = `🎁 ${money(data.total_raised_cents)} collectes pour l'acces a la lecture grace a ${data.donor_count} lecteur${data.donor_count > 1 ? "s" : ""} solidaire${data.donor_count > 1 ? "s" : ""}`;
+    badge.classList.remove("hidden");
+  }
+  solidarityFundLoaded = true;
+}
+
+function starsDisplay(bookId, small) {
+  const stats = ratingsByBook[bookId];
+  const size = small ? "text-xs" : "text-sm";
+  if (!stats) return `<span class="${size} text-ink-400">Pas encore note</span>`;
+  const rounded = Math.round(stats.avg_rating);
+  return `<span class="${size} text-gilt-500">${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}</span> <span class="${size} text-ink-500">${stats.avg_rating} (${stats.review_count})</span>`;
+}
+
+const PAGE_SIZE = 24;
+let currentPage = 0;
+let totalBooksCount = 0;
+let searchDebounceTimer = null;
+
+function debouncedSearch() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(resetPageAndRender, 350);
+}
+
+async function loadLiveBooks() {
+  const query = (document.getElementById("searchInput").value || "").trim();
+  const category = document.getElementById("categoryFilter").value;
+  const languages = getSelectedLanguages();
+
+  let q = sb
+    .from("books")
+    .select("id, title, description, price_cents, currency, cover_path, cover_position, status, category, author_name, language, free_preview_pages", { count: "exact" })
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .range(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE - 1);
+
+  if (category) q = q.eq("category", category);
+  if (languages.length > 0) q = q.in("language", languages); // rien de coche = toutes les langues
+  if (query) {
+    const safe = query.replace(/[%,]/g, "");
+    q = q.or(`title.ilike.%${safe}%,description.ilike.%${safe}%,author_name.ilike.%${safe}%`);
+  }
+
+  const { data, error, count } = await q;
+  if (error) { console.error(error); return; }
+  allLiveBooks = data ?? [];
+  totalBooksCount = count ?? 0;
+}
+
+// Recherche/categorie/tri : on repart de la page 1 a chaque changement de filtre.
+function resetPageAndRender() {
+  currentPage = 0;
+  renderMarketplace();
+}
+
+function changePage(delta) {
+  const totalPages = Math.max(1, Math.ceil(totalBooksCount / PAGE_SIZE));
+  currentPage = Math.min(Math.max(currentPage + delta, 0), totalPages - 1);
+  renderMarketplace();
+  document.getElementById("marketplaceGrid").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function populateCategoryFilter() {
+  const select = document.getElementById("categoryFilter");
+  if (select.dataset.filled) return;
+  Object.entries(CATEGORIES).forEach(([value, label]) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  });
+  select.dataset.filled = "1";
+
+  const panel = document.getElementById("languageFilterPanel");
+  panel.innerHTML = Object.entries(LANGUAGES).map(([value, label]) => `
+    <label class="flex items-center gap-2 text-sm text-ink-700 cursor-pointer">
+      <input type="checkbox" value="${value}" class="langFilterCheckbox" onchange="onLanguageFilterChange()" />
+      ${label}
+    </label>
+  `).join("");
+}
+
+function toggleLanguageFilterPanel() {
+  document.getElementById("languageFilterPanel").classList.toggle("hidden");
+}
+
+// Ferme le panneau si on clique ailleurs sur la page.
+document.addEventListener("click", (e) => {
+  const panel = document.getElementById("languageFilterPanel");
+  const btn = document.getElementById("languageFilterBtn");
+  if (panel && !panel.classList.contains("hidden") && !panel.contains(e.target) && e.target !== btn) {
+    panel.classList.add("hidden");
+  }
+});
+
+function getSelectedLanguages() {
+  return Array.from(document.querySelectorAll(".langFilterCheckbox:checked")).map(el => el.value);
+}
+
+function onLanguageFilterChange() {
+  const selected = getSelectedLanguages();
+  const btn = document.getElementById("languageFilterBtn");
+  btn.textContent = selected.length === 0 ? "Toutes les langues" : selected.map(v => LANGUAGES[v]).join(", ");
+  resetPageAndRender();
+}
+
+function coverUrl(path) {
+  if (!path) return null;
+  return sb.storage.from("book-covers").getPublicUrl(path).data.publicUrl;
+}
+
+// Si l'image de couverture ne charge pas (fichier absent, format non supporte
+// par le navigateur type HEIC, etc.), on bascule proprement sur le titre en texte
+// plutot que de laisser une icone d'image cassee.
+function coverImgOrFallback(coverPath, title, sizeClass, position) {
+  const url = coverUrl(coverPath);
+  if (!url) return `<span class="font-display text-paper-100 ${sizeClass} opacity-70 px-4 text-center">${title}</span>`;
+  const pos = position || "50% 50%";
+  return `<img src="${url}" class="w-full h-full object-cover" style="object-position: ${pos}"
+            onerror="this.outerHTML='<span class=\\'font-display text-paper-100 ${sizeClass} opacity-70 px-4 text-center\\'>${title.replace(/'/g, "\\'")}</span>'" />`;
+}
+
+// Aperçu de couverture en direct + cadrage (formulaires publier/modifier)
+function onCoverFileChange(prefix) {
+  const file = document.getElementById(prefix === "book" ? "bookCover" : "editCover").files[0];
+  const wrap = document.getElementById(`${prefix}CoverPreviewWrap`);
+  if (!file) {
+    if (prefix === "book") { wrap.classList.add("hidden"); }
+    return; // en edition, on garde l'apercu de la couverture existante si aucun nouveau fichier
+  }
+  const url = URL.createObjectURL(file);
+  document.getElementById(`${prefix}CoverPreviewImg`).src = url;
+  document.getElementById(`${prefix}CoverPosX`).value = 50;
+  document.getElementById(`${prefix}CoverPosY`).value = 50;
+  updateCoverPreview(prefix);
+  wrap.classList.remove("hidden");
+}
+
+function updateCoverPreview(prefix) {
+  const x = document.getElementById(`${prefix}CoverPosX`).value;
+  const y = document.getElementById(`${prefix}CoverPosY`).value;
+  document.getElementById(`${prefix}CoverPreviewImg`).style.objectPosition = `${x}% ${y}%`;
+}
+
+function getCoverPosition(prefix) {
+  const x = document.getElementById(`${prefix}CoverPosX`).value;
+  const y = document.getElementById(`${prefix}CoverPosY`).value;
+  return `${x}% ${y}%`;
+}
+
+async function renderMarketplace() {
+  populateCategoryFilter();
+  await Promise.all([loadLiveBooks(), loadRatings(), loadSolidarityFund()]);
+  const minRating = parseInt(document.getElementById("ratingFilter").value || "0");
+  // Note : le filtre par etoiles s'applique sur la page couramment chargee
+  // (recherche/categorie sont filtrees cote serveur, la note cote client).
+  const filtered = allLiveBooks.filter(b =>
+    !minRating || Math.round(ratingsByBook[b.id]?.avg_rating ?? 0) >= minRating
+  );
+  const grid = document.getElementById("marketplaceGrid");
+  const empty = document.getElementById("marketplaceEmpty");
+  const pagination = document.getElementById("marketplacePagination");
+
+  if (filtered.length === 0) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+    pagination.classList.add("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  grid.innerHTML = filtered.map(b => `
+    <button onclick="openBook('${b.id}')" class="book-card text-left bg-paper-100 border border-ink-100 rounded-xl overflow-hidden">
+      <div class="spine h-40 bg-ink-600 flex items-center justify-center overflow-hidden">
+        ${coverImgOrFallback(b.cover_path, b.title, "text-3xl", b.cover_position)}
+      </div>
+      <div class="p-3">
+        <p class="text-xs font-mono uppercase tracking-widest text-gilt-700">${CATEGORIES[b.category] ?? "Autre"} &middot; ${LANGUAGES[b.language] ?? "Francais"}</p>
+        <p class="font-medium text-sm text-ink-800 truncate mt-0.5">${b.title}</p>
+        <p class="text-xs text-ink-500 truncate">${b.author_name ?? ""}</p>
+        <p class="mt-1">${starsDisplay(b.id, true)}</p>
+        <p class="font-mono text-sm text-gilt-700 mt-1">${money(b.price_cents, b.currency.toUpperCase())}</p>
+      </div>
+    </button>
+  `).join("");
+
+  const totalPages = Math.max(1, Math.ceil(totalBooksCount / PAGE_SIZE));
+  if (totalPages <= 1) {
+    pagination.classList.add("hidden");
+  } else {
+    pagination.classList.remove("hidden");
+    pagination.innerHTML = `
+      <button onclick="changePage(-1)" ${currentPage === 0 ? "disabled" : ""} class="px-3 py-1.5 rounded-lg border border-ink-100 bg-white disabled:opacity-40 disabled:cursor-not-allowed">&larr; Precedent</button>
+      <span class="text-sm text-ink-500 font-mono">Page ${currentPage + 1} / ${totalPages}</span>
+      <button onclick="changePage(1)" ${currentPage >= totalPages - 1 ? "disabled" : ""} class="px-3 py-1.5 rounded-lg border border-ink-100 bg-white disabled:opacity-40 disabled:cursor-not-allowed">Suivant &rarr;</button>
+    `;
+  }
+}
+
+async function openBook(bookId) {
+  const { data: book, error } = await sb
+    .from("books")
+    .select("*")
+    .eq("id", bookId)
+    .single();
+  if (error || !book) return;
+
+  // Requete separee pour le pseudo du vendeur (fallback si author_name est vide) :
+  // plus fiable qu'une jointure sur nom de contrainte FK.
+  let sellerDisplayName = null;
+  if (!book.author_name) {
+    const { data: sellerProfile } = await sb.from("profiles").select("display_name").eq("id", book.seller_id).maybeSingle();
+    sellerDisplayName = sellerProfile?.display_name ?? null;
+  }
+
+  // Deja achete ? On evite de proposer un rachat inutile.
+  let alreadyOwned = false;
+  if (currentUser) {
+    const { data: existing } = await sb
+      .from("purchases")
+      .select("id")
+      .eq("book_id", bookId)
+      .eq("buyer_id", currentUser.id)
+      .eq("status", "completed")
+      .limit(1);
+    alreadyOwned = !!(existing && existing.length > 0);
+  }
+
+  // Avis : chargement + noms des acheteurs (requete separee, plus fiable
+  // qu'une jointure sur nom de contrainte FK).
+  const { data: reviews } = await sb
+    .from("reviews")
+    .select("rating, comment, created_at, buyer_id")
+    .eq("book_id", bookId)
+    .order("created_at", { ascending: false });
+
+  const reviewerIds = [...new Set((reviews ?? []).map(r => r.buyer_id))];
+  let reviewerNames = {};
+  if (reviewerIds.length > 0) {
+    const { data: reviewerProfiles } = await sb.from("profiles").select("id, display_name").in("id", reviewerIds);
+    for (const p of reviewerProfiles ?? []) reviewerNames[p.id] = p.display_name;
+  }
+
+  await loadRatings();
+  const reviewsHtml = (reviews ?? []).length === 0
+    ? `<p class="text-sm text-ink-500 mt-2">Aucun avis pour le moment.</p>`
+    : (reviews ?? []).map(r => `
+        <div class="border-t border-ink-100 pt-3 mt-3">
+          <p class="text-gilt-500 text-sm">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</p>
+          ${r.comment ? `<p class="text-sm text-ink-600 mt-1 break-words">${r.comment}</p>` : ""}
+          <p class="text-xs text-ink-400 mt-1">${reviewerNames[r.buyer_id] ?? "Acheteur"} &middot; ${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
+        </div>
+      `).join("");
+
+  const actionButton = alreadyOwned
+    ? `<div class="mt-4 flex gap-2">
+         <button onclick="readBook('${book.id}')" class="flex-1 bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
+         <button onclick="download('${book.id}')" class="flex-1 bg-ink-700 hover:bg-ink-800 text-white font-medium py-3 rounded-lg transition">Telecharger</button>
+       </div>
+       <p class="text-xs text-ink-500 mt-2 text-center">Deja dans ta bibliotheque</p>`
+    : `<div class="mt-4 flex gap-2">
+         <button onclick="buyBook('${book.id}')" class="flex-1 bg-ink-700 hover:bg-ink-800 text-white font-medium py-3 rounded-lg transition">Acheter</button>
+         ${book.free_preview_pages > 0 ? `<button onclick="previewFreeExcerpt('${book.id}')" class="flex-1 bg-paper-200 hover:bg-paper-300 text-ink-800 font-medium py-3 rounded-lg transition border border-ink-100">Extrait gratuit (${book.free_preview_pages} pages)</button>` : ""}
+       </div>
+       <label class="flex items-center gap-2 mt-3 text-sm text-ink-600 cursor-pointer">
+         <input type="checkbox" id="roundUpCheckbox" />
+         ${(() => {
+           const remainder = 100 - (book.price_cents % 100);
+           const donation = remainder === 100 ? 100 : remainder;
+           const roundedTotal = book.price_cents + donation;
+           return `Arrondir a ${money(roundedTotal, book.currency.toUpperCase())} pour soutenir l'acces a la lecture (+${money(donation, book.currency.toUpperCase())})`;
+         })()}
+       </label>
+       <label class="flex items-center gap-2 mt-2 text-sm text-ink-600 cursor-pointer">
+         <input type="checkbox" id="suspendExtraCheckbox" />
+         Offrir aussi un exemplaire "suspendu" a quelqu'un dans le besoin (+${money(book.price_cents, book.currency.toUpperCase())})
+       </label>
+       <p id="buyMsg" class="text-sm mt-3 text-err"></p>`;
+
+  document.getElementById("detailContent").innerHTML = `
+    <div class="grid sm:grid-cols-2 gap-8">
+      <div class="spine rounded-xl h-64 bg-ink-600 flex items-center justify-center overflow-hidden">
+        ${coverImgOrFallback(book.cover_path, book.title, "text-2xl", book.cover_position)}
+      </div>
+      <div class="min-w-0">
+        <p class="text-xs font-mono uppercase tracking-widest text-gilt-700">${CATEGORIES[book.category] ?? "Autre"} &middot; ${LANGUAGES[book.language] ?? "Francais"}</p>
+        <h2 class="font-display text-2xl font-600 text-ink-800 mt-1 break-words">${book.title}</h2>
+        <p class="text-sm text-ink-500 mt-1">Par ${book.author_name || sellerDisplayName || "un auteur independant"}</p>
+        <p class="text-ink-600 mt-3 whitespace-pre-line break-words">${book.description ?? ""}</p>
+        <p class="font-mono text-2xl text-gilt-700 mt-6">${money(book.price_cents, book.currency.toUpperCase())}</p>
+        ${actionButton}
+        <button onclick='openReportModal("${book.id}")' class="text-xs text-ink-400 underline mt-3">Signaler ce livre</button>
+      </div>
+    </div>
+    <div class="mt-8 border-t border-ink-100 pt-6">
+      <div class="flex items-center justify-between">
+        <p class="font-display text-lg font-600 text-ink-800">Avis</p>
+        <p>${starsDisplay(book.id, false)}</p>
+      </div>
+      ${reviewsHtml}
+    </div>
+  `;
+  showTab("detail");
+}
+
+async function buyBook(bookId) {
+  if (!currentUser) { showTab("auth"); return; }
+  const roundUp = document.getElementById("roundUpCheckbox")?.checked ?? false;
+  const suspendExtra = document.getElementById("suspendExtraCheckbox")?.checked ?? false;
+  const { data, error } = await invokeEdge("create-checkout", {
+    book_id: bookId, success_url: window.location.href, cancel_url: window.location.href, round_up: roundUp, suspend_extra: suspendExtra
+  });
+  const msg = document.getElementById("buyMsg");
+  if (error) {
+    msg.textContent = error;
+    return;
+  }
+  window.location.href = data.url;
+}
+
+// ============================================================
+// SELLER DASHBOARD
+// ============================================================
+function populateBookCategorySelect() {
+  const select = document.getElementById("bookCategory");
+  if (select.dataset.filled) return;
+  Object.entries(CATEGORIES).forEach(([value, label]) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  });
+  select.dataset.filled = "1";
+
+  const langSelect = document.getElementById("bookLanguage");
+  Object.entries(LANGUAGES).forEach(([value, label]) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    langSelect.appendChild(opt);
+  });
+  langSelect.value = "fr";
+}
+
+async function loadSellerData() {
+  if (!currentUser) { showTab("auth"); return; }
+  populateBookCategorySelect();
+  const { data: profile } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
+  currentProfile = profile;
+
+  const box = document.getElementById("stripeStatusLabel");
+  const subtext = document.getElementById("stripeStatusSubtext");
+  const statusBox = document.getElementById("stripeStatusBox");
+  const btn = document.getElementById("stripeConnectBtn");
+  const stripeReady = !!profile?.stripe_onboarding_complete;
+
+  if (stripeReady) {
+    box.textContent = "Compte Stripe actif.";
+    subtext.textContent = "Tu recois 80% du prix de vente automatiquement. Ae-book garde 20% de commission.";
+    btn.textContent = "Modifier mes coordonnees bancaires";
+    // Boite plus discrete : ce n'est plus une action requise, juste une info + un lien secondaire.
+    statusBox.className = "mb-6 rounded-2xl border border-ink-100 bg-transparent p-4 flex items-center justify-between flex-wrap gap-4";
+    btn.className = "text-sm font-medium text-ink-600 underline";
+  } else {
+    statusBox.className = "mb-6 rounded-2xl border border-ink-100 bg-paper-100 p-6 flex items-center justify-between flex-wrap gap-4";
+    btn.className = "bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition";
+    if (profile?.stripe_account_id) {
+      box.textContent = "Configuration Stripe incomplete, termine l'inscription.";
+      subtext.textContent = "Tu recevras 80% du prix de vente une fois la configuration terminee.";
+      btn.textContent = "Terminer la configuration";
+    } else {
+      box.textContent = "Connecte un compte Stripe pour pouvoir vendre.";
+      subtext.textContent = "Tu recevras 80% du prix de vente sur ton compte Stripe. Ae-book garde 20% de commission.";
+      btn.textContent = "Connecter Stripe";
+    }
+  }
+
+  // Impossible de publier tant que le compte Stripe n'est pas pret (sinon
+  // personne ne pourrait acheter le livre) : le formulaire est masque et
+  // remplace par une invite a connecter Stripe.
+  document.getElementById("uploadForm").classList.toggle("hidden", !stripeReady);
+  document.getElementById("uploadLockedMsg").classList.toggle("hidden", stripeReady);
+
+  const { data: books } = await sb
+    .from("books")
+    .select("*")
+    .eq("seller_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  // Quota de publication : 100 livres gratuits + 5 par pack achete a 1 EUR.
+  const allowedSlots = 100 + (profile?.paid_slot_packs ?? 0) * 5;
+  const usedSlots = books?.length ?? 0;
+  const quotaLabel = document.getElementById("quotaLabel");
+  const buySlotsBtn = document.getElementById("buySlotsBtn");
+  const uploadBtn = document.getElementById("uploadBtn");
+  quotaLabel.textContent = `${usedSlots} / ${allowedSlots} livres publies`;
+  if (usedSlots >= allowedSlots) {
+    quotaLabel.className = "font-medium text-err";
+    buySlotsBtn.classList.remove("hidden");
+    uploadBtn.disabled = true;
+    uploadBtn.classList.add("opacity-50", "cursor-not-allowed");
+    uploadBtn.textContent = "Limite atteinte - achete des emplacements ci-dessus";
+  } else {
+    quotaLabel.className = "font-medium text-ink-800";
+    buySlotsBtn.classList.toggle("hidden", usedSlots < allowedSlots - 2); // propose l'achat un peu avant la limite
+    uploadBtn.disabled = false;
+    uploadBtn.classList.remove("opacity-50", "cursor-not-allowed");
+    uploadBtn.textContent = "Publier (verification automatique)";
+  }
+
+  // Stats de vente : nombre d'achats et revenu par livre (RLS autorise deja
+  // le vendeur a lire les purchases ou seller_id = lui-meme)
+  const { data: sales } = await sb
+    .from("purchases")
+    .select("book_id, seller_amount_cents")
+    .eq("seller_id", currentUser.id)
+    .eq("status", "completed");
+
+  const salesByBook = {};
+  for (const s of sales ?? []) {
+    if (!salesByBook[s.book_id]) salesByBook[s.book_id] = { count: 0, revenueCents: 0 };
+    salesByBook[s.book_id].count++;
+    salesByBook[s.book_id].revenueCents += s.seller_amount_cents;
+  }
+
+  const list = document.getElementById("myBooksList");
+  if (!books || books.length === 0) {
+    list.innerHTML = `<p class="text-ink-500 text-sm">Tu n'as pas encore publie de livre.</p>`;
+    return;
+  }
+  list.innerHTML = books.map(b => {
+    const s = STATUS_LABEL[b.status] ?? { text: b.status, color: "#748BAF" };
+    const canRetry = b.status === "pending" || b.status === "rejected";
+    const canToggleListing = b.status === "live" || b.status === "unlisted";
+    const stats = salesByBook[b.id] ?? { count: 0, revenueCents: 0 };
+    return `
+      <div class="bg-paper-100 border border-ink-100 rounded-xl p-4 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-medium text-ink-800 break-words">${b.title}</p>
+          <p class="text-sm text-ink-500 flex items-center gap-2 mt-1">
+            <span class="status-dot" style="background:${s.color}"></span> ${s.text}
+          </p>
+          <p class="text-xs font-mono text-ok mt-1">${stats.count} vente${stats.count === 1 ? "" : "s"} &middot; ${money(stats.revenueCents)} encaisses</p>
+          ${b.verification_notes ? `<p class="text-xs text-err mt-1 break-words">${b.verification_notes}</p>` : ""}
+          <div class="flex gap-3 mt-1">
+            ${canRetry ? `<button onclick="retryVerification('${b.id}', this)" class="text-xs font-medium text-gilt-700 underline">Relancer la verification</button>` : ""}
+            <button onclick='openEditBook(${JSON.stringify(b).replace(/'/g, "&apos;")})' class="text-xs font-medium text-ink-600 underline">Modifier</button>
+            ${canToggleListing ? `<button onclick="toggleListing('${b.id}', '${b.status}')" class="text-xs font-medium text-err underline">${b.status === "live" ? "Retirer de la vente" : "Remettre en vente"}</button>` : ""}
+          </div>
+        </div>
+        <p class="font-mono text-sm text-gilt-700 whitespace-nowrap">${money(b.price_cents, b.currency.toUpperCase())}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+async function toggleListing(bookId, currentStatus) {
+  const newStatus = currentStatus === "live" ? "unlisted" : "live";
+  const { error } = await sb.from("books").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", bookId);
+  if (error) { alert("Erreur : " + error.message); return; }
+  loadSellerData();
+}
+
+function openEditBook(book) {
+  populateEditCategorySelect();
+  document.getElementById("editBookId").value = book.id;
+  document.getElementById("editOldFilePath").value = book.file_path || "";
+  document.getElementById("editOldChunkPaths").value = JSON.stringify(book.file_chunk_paths || []);
+  document.getElementById("editTitle").value = book.title;
+  document.getElementById("editAuthorName").value = book.author_name || "";
+  document.getElementById("editDescription").value = book.description || "";
+  document.getElementById("editPrice").value = (book.price_cents / 100).toFixed(2);
+  document.getElementById("editCategory").value = book.category || "autre";
+  document.getElementById("editLanguage").value = book.language || "fr";
+  document.getElementById("editFreePreviewPages").value = book.free_preview_pages || 0;
+  document.getElementById("editCover").value = "";
+
+  // Pre-remplit l'apercu avec la couverture existante (si il y en a une),
+  // pour permettre de juste ajuster le cadrage sans re-uploader.
+  const wrap = document.getElementById("editCoverPreviewWrap");
+  if (book.cover_path) {
+    const [x, y] = (book.cover_position || "50% 50%").replace(/%/g, "").split(" ");
+    document.getElementById("editCoverPreviewImg").src = coverUrl(book.cover_path);
+    document.getElementById("editCoverPosX").value = x || 50;
+    document.getElementById("editCoverPosY").value = y || 50;
+    updateCoverPreview("edit");
+    wrap.classList.remove("hidden");
+  } else {
+    wrap.classList.add("hidden");
+  }
+
+  document.getElementById("editModal").classList.remove("hidden");
+}
+
+function closeEditBook() {
+  document.getElementById("editModal").classList.add("hidden");
+}
+
+document.getElementById("editForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("editBookId").value;
+  const oldFilePath = document.getElementById("editOldFilePath").value;
+  const oldChunkPaths = JSON.parse(document.getElementById("editOldChunkPaths").value || "[]");
+  const msg = document.getElementById("editMsg");
+  msg.textContent = "";
+
+  try {
+    const newCover = document.getElementById("editCover").files[0];
+    let coverPath;
+    if (newCover) {
+      coverPath = `${currentUser.id}/${Date.now()}-${newCover.name}`;
+      const { error: coverErr } = await sb.storage.from("book-covers").upload(coverPath, newCover, {
+        contentType: newCover.type || "image/jpeg",
+        upsert: true,
+      });
+      if (coverErr) throw coverErr;
+    }
+
+    // Remplacement du contenu du livre (optionnel) : nouveau fichier =
+    // nouvelle verification technique + antivirus obligatoire.
+    const newBookFile = document.getElementById("editBookFile").files[0];
+    let newChunkPaths, newFileFormat;
+    if (newBookFile) {
+      const ext = newBookFile.name.split(".").pop().toLowerCase();
+      if (!["pdf", "epub"].includes(ext)) throw new Error("Seuls les formats PDF et EPUB sont acceptes.");
+      newChunkPaths = await uploadBookFileInChunks(newBookFile, currentUser.id);
+      newFileFormat = ext;
+    }
+
+    const updates = {
+      title: document.getElementById("editTitle").value.trim(),
+      author_name: document.getElementById("editAuthorName").value.trim(),
+      description: document.getElementById("editDescription").value.trim(),
+      price_cents: Math.round(parseFloat(document.getElementById("editPrice").value) * 100),
+      category: document.getElementById("editCategory").value,
+      language: document.getElementById("editLanguage").value,
+      free_preview_pages: parseInt(document.getElementById("editFreePreviewPages").value || "0"),
+      cover_position: getCoverPosition("edit"),
+      updated_at: new Date().toISOString(),
+    };
+    if (coverPath) updates.cover_path = coverPath;
+    if (newChunkPaths) {
+      updates.file_chunk_paths = newChunkPaths;
+      updates.file_path = null;
+      updates.file_format = newFileFormat;
+      updates.status = "pending";           // repasse en verification, invisible du catalogue entre-temps
+      updates.verification_notes = null;
+      updates.scan_analysis_id = null;
+    }
+
+    const { error } = await sb.from("books").update(updates).eq("id", id);
+    if (error) throw error;
+
+    if (newChunkPaths) {
+      // Relance la verification sur le nouveau fichier
+      await invokeEdge("verify-book", { book_id: id });
+      // Nettoyage best-effort de l'ancien fichier / des anciens morceaux (echec silencieux si deja absent)
+      if (oldChunkPaths.length > 0) await sb.storage.from("book-files").remove(oldChunkPaths);
+      else if (oldFilePath) await sb.storage.from("book-files").remove([oldFilePath]);
+    }
+
+    closeEditBook();
+    loadSellerData();
+  } catch (err) {
+    msg.textContent = err.message;
+  }
+});
+
+async function retryVerification(bookId, btn) {
+  btn.disabled = true;
+  btn.textContent = "Verification en cours...";
+  const { error } = await invokeEdge("verify-book", { book_id: bookId });
+  if (error) alert(error);
+  loadSellerData();
+}
+
+async function connectStripe() {
+  const { data, error } = await invokeEdge("stripe-connect-onboard", {
+    return_url: window.location.href, refresh_url: window.location.href
+  });
+  if (error) { alert(error); return; }
+  window.location.href = data.url;
+}
+
+async function buySlotPack() {
+  const { data, error } = await invokeEdge("create-slot-checkout", {
+    success_url: window.location.href, cancel_url: window.location.href
+  });
+  if (error) { alert(error); return; }
+  window.location.href = data.url;
+}
+
+// Decoupe un gros fichier en morceaux de 40 Mo (marge sous la limite de 50 Mo
+// par objet du plan gratuit) et les uploade dans l'ordre. Renvoie la liste
+// ordonnee des chemins, a stocker dans books.file_chunk_paths.
+const CHUNK_SIZE = 40 * 1024 * 1024;
+
+async function uploadBookFileInChunks(file, userId) {
+  const stamp = Date.now();
+  const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+  const paths = [];
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunkBlob = file.slice(start, end);
+    const path = `${userId}/${stamp}-${file.name}.part${String(i).padStart(3, "0")}`;
+    const { error } = await sb.storage.from("book-files").upload(path, chunkBlob);
+    if (error) throw error;
+    paths.push(path);
+  }
+  return paths;
+}
+
+document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!currentUser) { showTab("auth"); return; }
+
+  const msg = document.getElementById("uploadMsg");
+  const btn = document.getElementById("uploadBtn");
+  msg.textContent = "";
+  btn.disabled = true;
+  btn.textContent = "Envoi en cours...";
+
+  try {
+    const title = document.getElementById("bookTitle").value.trim();
+    const description = document.getElementById("bookDescription").value.trim();
+    const priceCents = Math.round(parseFloat(document.getElementById("bookPrice").value) * 100);
+    const coverFile = document.getElementById("bookCover").files[0];
+    const bookFile = document.getElementById("bookFile").files[0];
+
+    if (!bookFile) throw new Error("Merci de choisir un fichier PDF ou EPUB.");
+    const ext = bookFile.name.split(".").pop().toLowerCase();
+    if (!["pdf", "epub"].includes(ext)) throw new Error("Seuls les formats PDF et EPUB sont acceptes.");
+
+    const stamp = Date.now();
+    const chunkPaths = await uploadBookFileInChunks(bookFile, currentUser.id);
+
+    let coverPath = null;
+    if (coverFile) {
+      coverPath = `${currentUser.id}/${stamp}-${coverFile.name}`;
+      const { error: coverErr } = await sb.storage.from("book-covers").upload(coverPath, coverFile, {
+        contentType: coverFile.type || "image/jpeg",
+        upsert: true,
+      });
+      if (coverErr) throw coverErr;
+    }
+
+    const category = document.getElementById("bookCategory").value;
+    const language = document.getElementById("bookLanguage").value;
+    const authorName = document.getElementById("bookAuthorName").value.trim() || null;
+    const freePreviewPages = parseInt(document.getElementById("bookFreePreviewPages").value || "0");
+
+    const { data: book, error: insertErr } = await sb.from("books").insert({
+      seller_id: currentUser.id,
+      title, description,
+      price_cents: priceCents,
+      file_chunk_paths: chunkPaths,
+      file_format: ext,
+      cover_path: coverPath,
+      cover_position: coverFile ? getCoverPosition("book") : "50% 50%",
+      free_preview_pages: freePreviewPages,
+      category,
+      language,
+      author_name: authorName,
+    }).select().single();
+    if (insertErr) throw insertErr;
+
+    const { data: verifyData, error: verifyErr } = await invokeEdge("verify-book", { book_id: book.id });
+    if (verifyErr) throw new Error(verifyErr);
+
+    msg.className = verifyData.status === "rejected" ? "text-sm mt-3 text-err" : "text-sm mt-3 text-ok";
+    msg.textContent = verifyData.status === "rejected"
+      ? `Rejete : ${verifyData.reason}`
+      : "Livre envoye ! Scan de securite en cours, il sera mis en vente automatiquement s'il est propre.";
+
+    document.getElementById("uploadForm").reset();
+    document.getElementById("bookCoverPreviewWrap").classList.add("hidden");
+    loadSellerData();
+  } catch (err) {
+    msg.className = "text-sm mt-3 text-err";
+    msg.textContent = err.message.replace(/^QUOTA_EXCEEDED:\s*/, "").replace(/^STRIPE_REQUIRED:\s*/, "");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Publier (verification automatique)";
+    loadSellerData(); // remet le bouton dans le bon etat (notamment si le quota est atteint)
+  }
+});
+
+// ============================================================
+// LIBRARY
+// ============================================================
+async function loadSuspendedBooks() {
+  const { data: pool, error } = await sb.from("suspended_books_pool").select("*").limit(60);
+  const grid = document.getElementById("suspendedGrid");
+  const empty = document.getElementById("suspendedEmpty");
+  if (error) { grid.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+
+  // Deduplique par livre (le pool peut avoir plusieurs exemplaires du meme titre)
+  const byBook = {};
+  for (const p of pool ?? []) {
+    if (!byBook[p.book_id]) byBook[p.book_id] = { ...p, count: 0 };
+    byBook[p.book_id].count++;
+  }
+  const books = Object.values(byBook);
+
+  if (books.length === 0) {
+    grid.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  grid.innerHTML = books.map(b => `
+    <div class="bg-paper-100 border border-ink-100 rounded-xl overflow-hidden">
+      <div class="spine h-40 bg-ink-600 flex items-center justify-center overflow-hidden">
+        ${coverImgOrFallback(b.cover_path, b.title, "text-3xl", b.cover_position)}
+      </div>
+      <div class="p-3">
+        <p class="font-medium text-sm text-ink-800 truncate">${b.title}</p>
+        <p class="text-xs text-ink-500 truncate">${b.author_name ?? ""}</p>
+        <p class="text-xs text-ok mt-1">${b.count} exemplaire${b.count > 1 ? "s" : ""} disponible${b.count > 1 ? "s" : ""}</p>
+        <button onclick="claimSuspendedBook('${b.book_id}', this)" class="mt-2 w-full bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium py-2 rounded-lg">Recevoir ce livre</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function claimSuspendedBook(bookId, btn) {
+  if (!currentUser) { showTab("auth"); return; }
+  btn.disabled = true;
+  btn.textContent = "...";
+  const { error } = await invokeEdge("claim-suspended-book", { book_id: bookId });
+  if (error) {
+    alert(error);
+    btn.disabled = false;
+    btn.textContent = "Recevoir ce livre";
+    return;
+  }
+  alert("Le livre est maintenant dans ta bibliotheque !");
+  loadSuspendedBooks();
+}
+
+async function loadLibrary() {
+  if (!currentUser) { showTab("auth"); return; }
+  const { data: purchases } = await sb
+    .from("purchases")
+    .select("*, books(title, cover_path, cover_position, author_name)")
+    .or(`and(buyer_id.eq.${currentUser.id},is_suspended.eq.false),claimed_by_id.eq.${currentUser.id}`)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false });
+
+  const list = document.getElementById("libraryList");
+  const empty = document.getElementById("libraryEmpty");
+
+  if (!purchases || purchases.length === 0) {
+    list.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  const { data: myReviews } = await sb
+    .from("reviews")
+    .select("book_id, rating, comment")
+    .eq("buyer_id", currentUser.id);
+  const myReviewByBook = {};
+  for (const r of myReviews ?? []) myReviewByBook[r.book_id] = r;
+
+  list.innerHTML = purchases.map(p => {
+    const mine = myReviewByBook[p.book_id];
+    const authorLabel = (p.books?.author_name || "l'auteur").replace(/'/g, "&apos;");
+    return `
+    <div class="bg-paper-100 border border-ink-100 rounded-xl p-3 flex items-center gap-4">
+      <div class="spine w-16 h-20 rounded-md bg-ink-600 flex items-center justify-center overflow-hidden shrink-0">
+        ${coverImgOrFallback(p.books?.cover_path, p.books?.title ?? "Livre", "text-xs", p.books?.cover_position)}
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-ink-800 break-words">${p.books?.title ?? "Livre"}</p>
+        <div class="flex gap-3 flex-wrap mt-1">
+          <button onclick='openReviewModal("${p.book_id}", ${JSON.stringify(mine ?? null).replace(/'/g, "&apos;")})' class="text-xs font-medium text-gilt-700 underline">
+            ${mine ? "Modifier mon avis" : "Laisser un avis"}
+          </button>
+          <button onclick="openComposeModal(false, '${p.seller_id}', '${authorLabel}', '${p.book_id}')" class="text-xs font-medium text-ink-600 underline">Contacter l'auteur</button>
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 shrink-0">
+        <button onclick="readBook('${p.book_id}')" class="bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Lire en ligne</button>
+        <button onclick="download('${p.book_id}')" class="bg-ink-700 hover:bg-ink-800 text-white text-sm font-medium px-4 py-2 rounded-lg">Telecharger</button>
+      </div>
+    </div>
+  `;
+  }).join("");
+}
+
+// Recupere plusieurs URLs signees (morceaux) et les reassemble en un seul
+// Blob dans l'ordre. Utilise pour le telechargement et la lecture des
+// livres decoupes (>50 Mo).
+async function reassembleChunks(urls, onProgress) {
+  const buffers = [];
+  for (let i = 0; i < urls.length; i++) {
+    if (onProgress) onProgress(i + 1, urls.length);
+    const res = await fetch(urls[i]);
+    if (!res.ok) throw new Error("Impossible de recuperer un morceau du fichier.");
+    buffers.push(await res.arrayBuffer());
+  }
+  return new Blob(buffers);
+}
+
+async function download(bookId) {
+  showReaderLoading("Preparation du telechargement...");
+  const { data, error } = await invokeEdge("get-download-url", { book_id: bookId });
+  if (error) { closePreview(); alert(error); return; }
+
+  if (data.chunks) {
+    const blob = await reassembleChunks(data.chunks, (i, total) => updateReaderLoading(`Telechargement... (${i}/${total})`));
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `${data.title}.${data.file_format}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  } else {
+    window.open(data.url, "_blank");
+  }
+  closePreview();
+}
+
+// Lecture en ligne : reutilise la modale d'apercu, mais avec l'URL signee (ou
+// le blob reassemble pour un livre decoupe) du fichier deja achete.
+async function readBook(bookId) {
+  showReaderLoading("Chargement du livre...");
+  const { data, error } = await invokeEdge("get-download-url", { book_id: bookId });
+  if (error) { closePreview(); alert(error); return; }
+
+  if (data.chunks) {
+    const blob = await reassembleChunks(data.chunks, (i, total) => updateReaderLoading(`Chargement du livre... (${i}/${total})`));
+    const blobUrl = URL.createObjectURL(blob);
+    openReader(blobUrl, data.file_format, "Impossible d'afficher la lecture");
+  } else {
+    openReader(data.url, data.file_format, "Impossible d'afficher la lecture");
+  }
+}
+
+// Extrait gratuit : pas besoin d'avoir achete le livre, mais la lecture
+// est bloquee au-dela du nombre de pages autorise par le vendeur.
+async function previewFreeExcerpt(bookId) {
+  showReaderLoading("Chargement de l'extrait...");
+  const { data, error } = await invokeEdge("get-preview-url", { book_id: bookId });
+  if (error) { closePreview(); alert(error); return; }
+
+  if (data.chunks) {
+    const blob = await reassembleChunks(data.chunks, (i, total) => updateReaderLoading(`Chargement de l'extrait... (${i}/${total})`));
+    const blobUrl = URL.createObjectURL(blob);
+    openReader(blobUrl, data.file_format, "Impossible d'afficher l'extrait", data.max_pages);
+  } else {
+    openReader(data.url, data.file_format, "Impossible d'afficher l'extrait", data.max_pages);
+  }
+}
+
+// ============================================================
+// MESSAGERIE
+// ============================================================
+async function loadMyMessages() {
+  if (!currentUser) { showTab("auth"); return; }
+  // Recus : messages qui me sont adresses directement (pas les messages a l'admin,
+  // sauf si je suis moi-meme admin - dans ce cas ils apparaissent dans le panneau admin).
+  const { data: messages, error } = await sb
+    .from("messages")
+    .select("id, subject, body, read, created_at, sender_id, book_id")
+    .eq("recipient_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  const list = document.getElementById("messagesList");
+  const empty = document.getElementById("messagesEmpty");
+  if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+  if (!messages || messages.length === 0) {
+    list.innerHTML = "";
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+
+  const senderIds = [...new Set(messages.map(m => m.sender_id))];
+  let senderEmails = {};
+  if (senderIds.length > 0) {
+    const { data: senders } = await sb.from("profiles").select("id, email, display_name").in("id", senderIds);
+    for (const p of senders ?? []) senderEmails[p.id] = p.display_name || p.email;
+  }
+
+  list.innerHTML = messages.map(m => `
+    <button onclick='openMessage(${JSON.stringify(m).replace(/'/g, "&apos;")}, ${JSON.stringify(senderEmails[m.sender_id] ?? "Utilisateur").replace(/'/g, "&apos;")})' class="w-full text-left bg-paper-100 border border-ink-100 rounded-xl p-4 flex items-start justify-between gap-3 hover:border-gilt-500 transition">
+      <div class="min-w-0">
+        <p class="font-medium ${m.read ? "text-ink-600" : "text-ink-900"} break-words">${m.subject}</p>
+        <p class="text-xs text-ink-400 mt-1">De ${senderEmails[m.sender_id] ?? "Utilisateur"} &middot; ${new Date(m.created_at).toLocaleDateString("fr-FR")}</p>
+      </div>
+      ${!m.read ? `<span class="w-2.5 h-2.5 rounded-full bg-err shrink-0 mt-1"></span>` : ""}
+    </button>
+  `).join("");
+
+  updateUnreadBadge();
+  updateAdminUnreadBadge();
+}
+
+async function openMessage(m, senderLabel) {
+  openReadMessageModal(m.subject, m.body, `De ${senderLabel} · ${new Date(m.created_at).toLocaleString("fr-FR")}`);
+  openMessageContext = { id: m.id, senderId: m.sender_id, senderLabel, subject: m.subject };
+  document.getElementById("replyBtn").classList.remove("hidden");
+  if (!m.read) {
+    await sb.from("messages").update({ read: true }).eq("id", m.id);
+    loadMyMessages();
+  }
+}
+
+async function updateUnreadBadge() {
+  if (!currentUser) return;
+  const { count } = await sb
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("recipient_id", currentUser.id)
+    .eq("read", false);
+  const badge = document.getElementById("unreadBadge");
+  if (count && count > 0) {
+    badge.textContent = count > 9 ? "9+" : String(count);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+function updateAdminNavVisibility() {
+  document.getElementById("adminNavBtn").classList.toggle("hidden", !currentProfile?.is_admin);
+}
+
+function showAdminSection(section) {
+  ["books", "reports", "reviews", "messages", "errors"].forEach(s => {
+    document.getElementById(`admin${s.charAt(0).toUpperCase() + s.slice(1)}Section`).classList.toggle("hidden", s !== section);
+    const tab = document.getElementById(`adminTab${s.charAt(0).toUpperCase() + s.slice(1)}`);
+    tab.classList.toggle("border-ink-700", s === section);
+    tab.classList.toggle("text-ink-500", s !== section);
+    tab.classList.toggle("border-transparent", s !== section);
+  });
+  if (section === "books") loadAdminBooks();
+  if (section === "reports") loadAdminReports();
+  if (section === "reviews") loadAdminReviews();
+  if (section === "messages") loadAdminMessages();
+  if (section === "errors") loadAdminErrors();
+}
+
+async function loadAdminBooks() {
+  await loadFundBanner();
+  const { data: books, error } = await sb
+    .from("books")
+    .select("id, title, status, author_name, verification_notes, seller_id, price_cents, currency")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const list = document.getElementById("adminBooksList");
+  if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+  if (!books || books.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucun livre.</p>`; return; }
+
+  list.innerHTML = books.map(b => {
+    const s = STATUS_LABEL[b.status] ?? { text: b.status, color: "#748BAF" };
+    const canUnlist = b.status === "live";
+    const fundCost = Math.round(b.price_cents * 0.8);
+    return `
+      <div class="bg-paper-100 border border-ink-100 rounded-xl p-4 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-medium text-ink-800 break-words">${b.title}</p>
+          <p class="text-sm text-ink-500 flex items-center gap-2 mt-1">
+            <span class="status-dot" style="background:${s.color}"></span> ${s.text}
+          </p>
+          ${b.verification_notes ? `<p class="text-xs text-err mt-1 break-words">${b.verification_notes}</p>` : ""}
+        </div>
+        <div class="flex gap-3 shrink-0 flex-wrap justify-end">
+          <button onclick="readBook('${b.id}')" class="text-sm font-medium text-gilt-700 underline">Lire</button>
+          ${b.status === "live" ? `<button onclick="fundSuspendedBook('${b.id}', this)" class="text-sm font-medium text-ok underline">Financer un exemplaire (${money(fundCost, b.currency.toUpperCase())})</button>` : ""}
+          ${canUnlist ? `<button onclick="adminUnlistBook('${b.id}')" class="text-sm font-medium text-err underline">Retirer de la vente</button>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function loadFundBanner() {
+  const { data } = await sb.from("solidarity_fund_stats").select("*").single();
+  const banner = document.getElementById("fundBanner");
+  if (!data) { banner.textContent = ""; return; }
+  banner.innerHTML = `
+    <span class="font-medium text-ink-800">Fonds solidaire :</span>
+    ${money(data.total_raised_cents)} collectes &middot;
+    ${money(data.total_spent_cents)} deja depenses &middot;
+    <span class="font-mono text-ok">${money(data.available_cents)} disponibles</span>
+  `;
+}
+
+async function fundSuspendedBook(bookId, btn) {
+  if (!confirm("Utiliser le fonds solidaire pour financer un exemplaire suspendu de ce livre ? Le vendeur sera paye immediatement.")) return;
+  btn.disabled = true;
+  btn.textContent = "...";
+  const { error } = await invokeEdge("fund-suspended-book", { book_id: bookId });
+  if (error) {
+    alert(error);
+    btn.disabled = false;
+    btn.textContent = "Financer un exemplaire";
+    return;
+  }
+  alert("Exemplaire suspendu finance ! Il est desormais disponible dans la section Livres suspendus.");
+  loadAdminBooks();
+}
+
+async function adminUnlistBook(bookId) {
+  const { error } = await sb.from("books").update({ status: "unlisted", updated_at: new Date().toISOString() }).eq("id", bookId);
+  if (error) { alert(error.message); return; }
+  loadAdminBooks();
+}
+
+const REPORT_REASON_LABELS = {
+  plagiat: "Plagiat",
+  contenu_inapproprie: "Contenu inapproprie",
+  contrefacon: "Contrefacon / droits d'auteur",
+  autre: "Autre",
+};
+
+const REPORT_STATUS_LABELS = {
+  pending: { text: "En attente", color: "#B8873A" },
+  reviewed: { text: "Traite", color: "#4C7A5D" },
+  dismissed: { text: "Rejete", color: "#748BAF" },
+};
+
+async function loadAdminReports() {
+  const { data: reports, error } = await sb
+    .from("reports")
+    .select("id, book_id, reason, details, status, created_at, reporter_id, books(title)")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const list = document.getElementById("adminReportsList");
+  if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+  if (!reports || reports.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucun signalement.</p>`; return; }
+
+  const reporterIds = [...new Set(reports.map(r => r.reporter_id))];
+  let reporterEmails = {};
+  if (reporterIds.length > 0) {
+    const { data: reporters } = await sb.from("profiles").select("id, email").in("id", reporterIds);
+    for (const p of reporters ?? []) reporterEmails[p.id] = p.email;
+  }
+
+  list.innerHTML = reports.map(r => {
+    const s = REPORT_STATUS_LABELS[r.status] ?? { text: r.status, color: "#748BAF" };
+    return `
+      <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="font-medium text-ink-800 break-words">${r.books?.title ?? "Livre supprime"}</p>
+            <p class="text-sm text-ink-500 flex items-center gap-2 mt-1">
+              <span class="status-dot" style="background:${s.color}"></span> ${s.text} &middot; ${REPORT_REASON_LABELS[r.reason] ?? r.reason}
+            </p>
+            ${r.details ? `<p class="text-sm text-ink-600 mt-1 break-words">${r.details}</p>` : ""}
+            <p class="text-xs text-ink-400 mt-1">Signale par ${reporterEmails[r.reporter_id] ?? "inconnu"} &middot; ${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
+          </div>
+        </div>
+        <div class="flex gap-3 mt-3">
+          ${r.status === "pending" ? `
+            <button onclick="adminUpdateReport('${r.id}', 'reviewed')" class="text-xs font-medium text-ok underline">Marquer traite</button>
+            <button onclick="adminUpdateReport('${r.id}', 'dismissed')" class="text-xs font-medium text-ink-500 underline">Rejeter</button>
+          ` : ""}
+          <button onclick="readBook('${r.book_id}')" class="text-xs font-medium text-gilt-700 underline">Lire le livre</button>
+          <button onclick="adminUnlistBook('${r.book_id}')" class="text-xs font-medium text-err underline">Retirer le livre de la vente</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function adminUpdateReport(reportId, status) {
+  const { error } = await sb.from("reports").update({ status }).eq("id", reportId);
+  if (error) { alert(error.message); return; }
+  loadAdminReports();
+}
+
+async function loadAdminMessages() {
+  const { data: messages, error } = await sb
+    .from("messages")
+    .select("id, subject, body, read, created_at, sender_id")
+    .eq("is_admin_message", true)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const list = document.getElementById("adminMessagesList");
+  if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+  if (!messages || messages.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucun message.</p>`; return; }
+
+  const senderIds = [...new Set(messages.map(m => m.sender_id))];
+  let senderEmails = {};
+  if (senderIds.length > 0) {
+    const { data: senders } = await sb.from("profiles").select("id, email, display_name").in("id", senderIds);
+    for (const p of senders ?? []) senderEmails[p.id] = p.display_name ? `${p.display_name} (${p.email})` : p.email;
+  }
+
+  list.innerHTML = messages.map(m => `
+    <button onclick='openAdminMessage(${JSON.stringify(m).replace(/'/g, "&apos;")}, ${JSON.stringify(senderEmails[m.sender_id] ?? "Utilisateur").replace(/'/g, "&apos;")})' class="w-full text-left bg-paper-100 border border-ink-100 rounded-xl p-4 flex items-start justify-between gap-3 hover:border-gilt-500 transition">
+      <div class="min-w-0">
+        <p class="font-medium ${m.read ? "text-ink-600" : "text-ink-900"} break-words">${m.subject}</p>
+        <p class="text-xs text-ink-400 mt-1">De ${senderEmails[m.sender_id] ?? "Utilisateur"} &middot; ${new Date(m.created_at).toLocaleDateString("fr-FR")}</p>
+      </div>
+      ${!m.read ? `<span class="w-2.5 h-2.5 rounded-full bg-err shrink-0 mt-1"></span>` : ""}
+    </button>
+  `).join("");
+
+  updateAdminUnreadBadge();
+}
+
+async function openAdminMessage(m, senderLabel) {
+  openReadMessageModal(m.subject, m.body, `De ${senderLabel} · ${new Date(m.created_at).toLocaleString("fr-FR")}`);
+  openMessageContext = { id: m.id, senderId: m.sender_id, senderLabel, subject: m.subject };
+  document.getElementById("replyBtn").classList.remove("hidden");
+  if (!m.read) {
+    await sb.from("messages").update({ read: true }).eq("id", m.id);
+    loadAdminMessages();
+  }
+}
+
+async function updateAdminUnreadBadge() {
+  if (!currentProfile?.is_admin) return;
+  const { count } = await sb
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("is_admin_message", true)
+    .eq("read", false);
+  const badge = document.getElementById("adminUnreadBadge");
+  if (count && count > 0) {
+    badge.textContent = count > 9 ? "9+" : String(count);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+async function loadAdminReviews() {
+  const { data: reviews, error } = await sb
+    .from("reviews")
+    .select("id, rating, comment, created_at, book_id, buyer_id, books(title)")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const list = document.getElementById("adminReviewsList");
+  if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+  if (!reviews || reviews.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucun avis.</p>`; return; }
+
+  list.innerHTML = reviews.map(r => `
+    <div class="bg-paper-100 border border-ink-100 rounded-xl p-4 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <p class="font-medium text-ink-800 break-words">${r.books?.title ?? "Livre"}</p>
+        <p class="text-gilt-500 text-sm">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</p>
+        ${r.comment ? `<p class="text-sm text-ink-600 mt-1 break-words">${r.comment}</p>` : ""}
+        <p class="text-xs text-ink-400 mt-1">${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
+      </div>
+      <button onclick="adminDeleteReview('${r.id}')" class="text-sm font-medium text-err underline shrink-0">Supprimer</button>
+    </div>
+  `).join("");
+}
+
+async function adminDeleteReview(reviewId) {
+  if (!confirm("Supprimer cet avis ?")) return;
+  const { error } = await sb.from("reviews").delete().eq("id", reviewId);
+  if (error) { alert(error.message); return; }
+  loadAdminReviews();
+}
+
+async function loadAdminErrors() {
+  const { data: errors, error } = await sb
+    .from("error_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const list = document.getElementById("adminErrorsList");
+  if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
+  if (!errors || errors.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucune erreur enregistree.</p>`; return; }
+
+  list.innerHTML = errors.map(e => `
+    <div class="bg-paper-100 border border-ink-100 rounded-lg p-3 text-sm">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-mono text-xs text-gilt-700">${e.source}</span>
+        <span class="text-xs text-ink-400">${new Date(e.created_at).toLocaleString("fr-FR")}</span>
+      </div>
+      <p class="text-ink-700 mt-1 break-words">${e.message}</p>
+    </div>
+  `).join("");
+}
+
+// Capture globale des erreurs JS cote client, enregistrees pour consultation
+// dans le panneau admin (mieux que rien tant qu'il n'y a pas d'outil dedie).
+window.addEventListener("error", (e) => {
+  sb.from("error_logs").insert({
+    source: "frontend",
+    message: e.message || "Erreur inconnue",
+    context: { filename: e.filename, lineno: e.lineno },
+  }).then(() => {}, () => {});
+});
+window.addEventListener("unhandledrejection", (e) => {
+  sb.from("error_logs").insert({
+    source: "frontend",
+    message: (e.reason && e.reason.message) || String(e.reason) || "Promise rejetee",
+  }).then(() => {}, () => {});
+});
+
+// ============================================================
+// INIT
+// ============================================================
+(async function init() {
+  const isRecovery = window.location.hash.includes("type=recovery");
+
+  const { data: { session } } = await sb.auth.getSession();
+  currentUser = session?.user ?? null;
+  if (currentUser) {
+    const { data } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
+    currentProfile = data;
+  }
+  renderAuthArea();
+  updateAdminNavVisibility();
+  updateUnreadBadge();
+  updateAdminUnreadBadge();
+
+  if (isRecovery) {
+    showTab("resetPassword"); // ne pas rediriger vers le catalogue : l'utilisateur doit d'abord choisir un nouveau mot de passe
+  } else {
+    showTab("marketplace");
+  }
+})();
+</script>
+
+</body>
+</html>
