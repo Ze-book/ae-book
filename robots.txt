@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: /https://ze-book.netlify.app/
+Sitemap: https://ze-book.github.io/ae-book/sitemap.xml
