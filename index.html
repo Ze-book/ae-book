@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Ae-book — La marketplace des auteurs independants</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231C2B45'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='34' font-weight='600' fill='%23B8873A' text-anchor='middle'%3E%C3%86%3C/text%3E%3C/svg%3E" />
 <meta name="description" content="Achetez et vendez des ebooks (PDF/EPUB) directement entre auteurs independants et lecteurs. Verification antivirus automatique, lecture en ligne, paiement securise par Stripe." />
 <meta property="og:title" content="Ae-book — La marketplace des auteurs independants" />
 <meta property="og:description" content="Achetez et vendez des ebooks directement entre auteurs independants et lecteurs, en toute securite." />
@@ -72,6 +73,7 @@
   // --- A REMPLIR avant deploiement ---
   const SUPABASE_URL = "https://bwnsoqbwqvcjnmohndof.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bnNvcWJ3cXZjam5tb2huZG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MDYzNjAsImV4cCI6MjA5ODk4MjM2MH0.lVcbQKOvXIPNT2BuTinue0knHV1P8fVkqrPRSXWKr10";
+  const R2_COVERS_PUBLIC_URL = "https://pub-a9846bb0eba942dda05f1026b9fe1529.r2.dev"; // URL publique du bucket R2 des couvertures
   // ------------------------------------
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -1200,7 +1202,7 @@ function onLanguageFilterChange() {
 
 function coverUrl(path) {
   if (!path) return null;
-  return sb.storage.from("book-covers").getPublicUrl(path).data.publicUrl;
+  return `${R2_COVERS_PUBLIC_URL}/${path}`;
 }
 
 // Si l'image de couverture ne charge pas (fichier absent, format non supporte
@@ -1602,12 +1604,7 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
     const newCover = document.getElementById("editCover").files[0];
     let coverPath;
     if (newCover) {
-      coverPath = `${currentUser.id}/${Date.now()}-${newCover.name}`;
-      const { error: coverErr } = await sb.storage.from("book-covers").upload(coverPath, newCover, {
-        contentType: newCover.type || "image/jpeg",
-        upsert: true,
-      });
-      if (coverErr) throw coverErr;
+      coverPath = await uploadFileToR2(newCover, "cover");
     }
 
     // Remplacement du contenu du livre (optionnel) : nouveau fichier =
@@ -1649,8 +1646,8 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
       // Relance la verification sur le nouveau fichier
       await invokeEdge("verify-book", { book_id: id });
       // Nettoyage best-effort de l'ancien fichier / des anciens morceaux (echec silencieux si deja absent)
-      if (oldChunkPaths.length > 0) await sb.storage.from("book-files").remove(oldChunkPaths);
-      else if (oldFilePath) await sb.storage.from("book-files").remove([oldFilePath]);
+      const keysToDelete = oldChunkPaths.length > 0 ? oldChunkPaths : (oldFilePath ? [oldFilePath] : []);
+      if (keysToDelete.length > 0) await invokeEdge("delete-r2-object", { type: "file", keys: keysToDelete });
     }
 
     closeEditBook();
@@ -1689,18 +1686,31 @@ async function buySlotPack() {
 // ordonnee des chemins, a stocker dans books.file_chunk_paths.
 const CHUNK_SIZE = 40 * 1024 * 1024;
 
+// Upload direct vers R2 (Cloudflare) : le navigateur envoie le fichier
+// directement au stockage via une URL signee, sans passer par une Edge
+// Function (qui aurait des limites de taille genantes pour de gros fichiers).
+async function uploadFileToR2(file, type) {
+  const { data, error } = await invokeEdge("get-upload-url", { type, filename: file.name });
+  if (error) throw new Error(error);
+  const res = await fetch(data.uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type || "application/octet-stream" },
+  });
+  if (!res.ok) throw new Error("Echec de l'upload vers le stockage.");
+  return data.key;
+}
+
 async function uploadBookFileInChunks(file, userId) {
-  const stamp = Date.now();
   const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
   const paths = [];
   for (let i = 0; i < totalChunks; i++) {
     const start = i * CHUNK_SIZE;
     const end = Math.min(start + CHUNK_SIZE, file.size);
     const chunkBlob = file.slice(start, end);
-    const path = `${userId}/${stamp}-${file.name}.part${String(i).padStart(3, "0")}`;
-    const { error } = await sb.storage.from("book-files").upload(path, chunkBlob);
-    if (error) throw error;
-    paths.push(path);
+    const chunkFile = new File([chunkBlob], `${file.name}.part${String(i).padStart(3, "0")}`, { type: file.type });
+    const key = await uploadFileToR2(chunkFile, "file");
+    paths.push(key);
   }
   return paths;
 }
@@ -1726,17 +1736,11 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     const ext = bookFile.name.split(".").pop().toLowerCase();
     if (!["pdf", "epub"].includes(ext)) throw new Error("Seuls les formats PDF et EPUB sont acceptes.");
 
-    const stamp = Date.now();
     const chunkPaths = await uploadBookFileInChunks(bookFile, currentUser.id);
 
     let coverPath = null;
     if (coverFile) {
-      coverPath = `${currentUser.id}/${stamp}-${coverFile.name}`;
-      const { error: coverErr } = await sb.storage.from("book-covers").upload(coverPath, coverFile, {
-        contentType: coverFile.type || "image/jpeg",
-        upsert: true,
-      });
-      if (coverErr) throw coverErr;
+      coverPath = await uploadFileToR2(coverFile, "cover");
     }
 
     const category = document.getElementById("bookCategory").value;
