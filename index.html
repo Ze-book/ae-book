@@ -1096,7 +1096,8 @@ async function loadRatings() {
 let solidarityFundLoaded = false;
 async function loadSolidarityFund() {
   if (solidarityFundLoaded) return; // le total change peu, pas besoin de le recharger a chaque filtre
-  const { data } = await sb.from("solidarity_fund_stats").select("*").single();
+  const { data: rows } = await sb.rpc("get_solidarity_fund_stats");
+  const data = rows?.[0];
   const badge = document.getElementById("solidarityFundBadge");
   if (data && data.total_raised_cents > 0) {
     badge.textContent = `🎁 ${money(data.total_raised_cents)} collectes pour l'acces a la lecture grace a ${data.donor_count} lecteur${data.donor_count > 1 ? "s" : ""} solidaire${data.donor_count > 1 ? "s" : ""}`;
@@ -1804,7 +1805,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
 // LIBRARY
 // ============================================================
 async function loadSuspendedBooks() {
-  const { data: pool, error } = await sb.from("suspended_books_pool").select("*").limit(60);
+  const { data: pool, error } = await sb.rpc("get_suspended_books_pool");
   const grid = document.getElementById("suspendedGrid");
   const empty = document.getElementById("suspendedEmpty");
   if (error) { grid.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
@@ -2102,7 +2103,8 @@ async function loadAdminBooks() {
 }
 
 async function loadFundBanner() {
-  const { data } = await sb.from("solidarity_fund_stats").select("*").single();
+  const { data: rows } = await sb.rpc("get_solidarity_fund_stats");
+  const data = rows?.[0];
   const banner = document.getElementById("fundBanner");
   if (!data) { banner.textContent = ""; return; }
   banner.innerHTML = `
