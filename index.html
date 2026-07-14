@@ -97,10 +97,13 @@
     </nav>
     <div id="authArea" class="flex items-center gap-3"></div>
   </div>
-  <nav class="sm:hidden flex justify-around border-t border-ink-100 text-xs font-medium text-ink-600 py-2">
-    <button onclick="showTab('marketplace')">Explorer</button>
-    <button onclick="showTab('seller')">Vendre</button>
-    <button onclick="showTab('library')">Bibliotheque</button>
+  <nav class="sm:hidden flex items-center gap-1 overflow-x-auto border-t border-ink-100 text-xs font-medium text-ink-600 py-2 px-1">
+    <button onclick="showTab('marketplace')" class="shrink-0 px-2 py-1">Explorer</button>
+    <button onclick="showTab('seller')" class="shrink-0 px-2 py-1">Vendre</button>
+    <button onclick="showTab('library')" class="shrink-0 px-2 py-1">Bibliotheque</button>
+    <button onclick="showTab('messages')" class="shrink-0 px-2 py-1 relative">Messages<span id="unreadBadgeMobile" class="hidden absolute -top-0.5 -right-0.5 bg-err text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center"></span></button>
+    <button onclick="showTab('suspended')" class="shrink-0 px-2 py-1">Suspendus</button>
+    <button onclick="showTab('admin')" id="adminNavBtnMobile" class="hidden shrink-0 px-2 py-1 text-err">Admin</button>
   </nav>
 </header>
 
@@ -295,7 +298,7 @@
             <input type="file" accept="image/*" id="bookCover" onchange="onCoverFileChange('book')" class="mt-1 w-full text-sm" />
             <div id="bookCoverPreviewWrap" class="hidden mt-3">
               <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaitra dans le catalogue :</p>
-              <div class="spine h-40 w-32 bg-ink-600 rounded-lg overflow-hidden">
+              <div class="spine aspect-[2/3] w-32 bg-ink-600 rounded-lg overflow-hidden">
                 <img id="bookCoverPreviewImg" class="w-full h-full object-cover" />
               </div>
               <div class="mt-2 space-y-2 max-w-xs">
@@ -596,7 +599,7 @@ function closePreview() {
         <p class="text-xs text-ink-500 mt-1">Choisis un fichier pour la remplacer, ou ajuste juste le cadrage de celle deja en ligne ci-dessous.</p>
         <div id="editCoverPreviewWrap" class="hidden mt-3">
           <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaitra dans le catalogue :</p>
-          <div class="spine h-40 w-32 bg-ink-600 rounded-lg overflow-hidden">
+          <div class="spine aspect-[2/3] w-32 bg-ink-600 rounded-lg overflow-hidden">
             <img id="editCoverPreviewImg" class="w-full h-full object-cover" />
           </div>
           <div class="mt-2 space-y-2 max-w-xs">
@@ -1269,7 +1272,7 @@ async function renderMarketplace() {
 
   grid.innerHTML = filtered.map(b => `
     <button onclick="openBook('${b.id}')" class="book-card text-left bg-paper-100 border border-ink-100 rounded-xl overflow-hidden">
-      <div class="spine h-40 bg-ink-600 flex items-center justify-center overflow-hidden">
+      <div class="spine aspect-[2/3] w-full bg-ink-600 flex items-center justify-center overflow-hidden">
         ${coverImgOrFallback(b.cover_path, b.title, "text-3xl", b.cover_position)}
       </div>
       <div class="p-3">
@@ -1377,7 +1380,7 @@ async function openBook(bookId) {
 
   document.getElementById("detailContent").innerHTML = `
     <div class="grid sm:grid-cols-2 gap-8">
-      <div class="spine rounded-xl h-64 bg-ink-600 flex items-center justify-center overflow-hidden">
+      <div class="spine rounded-xl aspect-[2/3] w-full bg-ink-600 flex items-center justify-center overflow-hidden">
         ${coverImgOrFallback(book.cover_path, book.title, "text-2xl", book.cover_position)}
       </div>
       <div class="min-w-0">
@@ -1659,7 +1662,18 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
   }
 });
 
+const retryLastAttempt = {}; // anti rafale : evite de marteler VirusTotal en cliquant plusieurs fois vite
+
 async function retryVerification(bookId, btn) {
+  const now = Date.now();
+  const last = retryLastAttempt[bookId] || 0;
+  const cooldownMs = 30000; // 30 secondes entre deux tentatives sur le meme livre
+  if (now - last < cooldownMs) {
+    alert(`Attends encore ${Math.ceil((cooldownMs - (now - last)) / 1000)} secondes avant de relancer, pour ne pas saturer le service antivirus.`);
+    return;
+  }
+  retryLastAttempt[bookId] = now;
+
   btn.disabled = true;
   btn.textContent = "Verification en cours...";
   const { error } = await invokeEdge("verify-book", { book_id: bookId });
@@ -1812,7 +1826,7 @@ async function loadSuspendedBooks() {
 
   grid.innerHTML = books.map(b => `
     <div class="bg-paper-100 border border-ink-100 rounded-xl overflow-hidden">
-      <div class="spine h-40 bg-ink-600 flex items-center justify-center overflow-hidden">
+      <div class="spine aspect-[2/3] w-full bg-ink-600 flex items-center justify-center overflow-hidden">
         ${coverImgOrFallback(b.cover_path, b.title, "text-3xl", b.cover_position)}
       </div>
       <div class="p-3">
@@ -1871,7 +1885,7 @@ async function loadLibrary() {
     const authorLabel = (p.books?.author_name || "l'auteur").replace(/'/g, "&apos;");
     return `
     <div class="bg-paper-100 border border-ink-100 rounded-xl p-3 flex items-center gap-4">
-      <div class="spine w-16 h-20 rounded-md bg-ink-600 flex items-center justify-center overflow-hidden shrink-0">
+      <div class="spine w-16 aspect-[2/3] rounded-md bg-ink-600 flex items-center justify-center overflow-hidden shrink-0">
         ${coverImgOrFallback(p.books?.cover_path, p.books?.title ?? "Livre", "text-xs", p.books?.cover_position)}
       </div>
       <div class="flex-1 min-w-0">
@@ -2019,11 +2033,14 @@ async function updateUnreadBadge() {
     .eq("recipient_id", currentUser.id)
     .eq("read", false);
   const badge = document.getElementById("unreadBadge");
+  const badgeMobile = document.getElementById("unreadBadgeMobile");
   if (count && count > 0) {
     badge.textContent = count > 9 ? "9+" : String(count);
     badge.classList.remove("hidden");
+    badgeMobile.classList.remove("hidden");
   } else {
     badge.classList.add("hidden");
+    badgeMobile.classList.add("hidden");
   }
 }
 
@@ -2032,6 +2049,7 @@ async function updateUnreadBadge() {
 // ============================================================
 function updateAdminNavVisibility() {
   document.getElementById("adminNavBtn").classList.toggle("hidden", !currentProfile?.is_admin);
+  document.getElementById("adminNavBtnMobile").classList.toggle("hidden", !currentProfile?.is_admin);
 }
 
 function showAdminSection(section) {
