@@ -19,6 +19,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -65,6 +66,52 @@
   .spine { background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.12)); }
   ::-webkit-scrollbar { width: 10px; }
   ::-webkit-scrollbar-thumb { background: #C7D0E1; border-radius: 6px; }
+
+  /* --- Retouches visuelles globales : appliquees automatiquement a tous
+     les elements existants via leurs classes partagees, sans toucher
+     au HTML lui-meme (donc sans risque de casser une structure). --- */
+
+  /* Profondeur subtile sur toutes les cartes "papier" */
+  .bg-paper-100.border-ink-100 {
+    box-shadow: 0 1px 2px rgba(28,43,69,0.05), 0 2px 6px rgba(28,43,69,0.04);
+  }
+
+  /* Legere elevation sur les boutons pleins (CTA), plus premium qu'un aplat */
+  .bg-ink-700, .bg-gilt-500 {
+    box-shadow: 0 1px 2px rgba(28,43,69,0.08);
+    transition: box-shadow .15s ease, transform .1s ease;
+  }
+  .bg-ink-700:hover, .bg-gilt-500:hover {
+    box-shadow: 0 4px 10px rgba(28,43,69,0.16);
+  }
+  .bg-ink-700:active, .bg-gilt-500:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(28,43,69,0.1);
+  }
+
+  /* En-tete plus net au scroll */
+  header.sticky { box-shadow: 0 1px 0 rgba(28,43,69,0.06); }
+
+  /* Focus clavier propre, coherent avec la palette (accessibilite) */
+  input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 2px solid #B8873A;
+    outline-offset: 1px;
+  }
+
+  /* Transition douce a l'apparition d'un onglet */
+  .tab.active { animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Modales : leger fondu + montee pour un rendu plus soigne */
+  #previewModal:not(.hidden), #editModal:not(.hidden), #reviewModal:not(.hidden),
+  #cguModal:not(.hidden), #reportModal:not(.hidden), #composeModal:not(.hidden),
+  #readMessageModal:not(.hidden) {
+    animation: modalIn .18s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
   .status-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
 </style>
 </head>
@@ -370,15 +417,57 @@
     <p class="ribbon text-xs font-mono uppercase tracking-widest text-err">Reserve aux administrateurs</p>
     <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Moderation.</h1>
 
-    <div class="flex gap-2 mb-6 border-b border-ink-100">
-      <button onclick="showAdminSection('books')" id="adminTabBooks" class="px-4 py-2 font-medium text-sm border-b-2 border-ink-700">Livres</button>
+    <div class="flex gap-2 mb-6 border-b border-ink-100 flex-wrap">
+      <button onclick="showAdminSection('dashboard')" id="adminTabDashboard" class="px-4 py-2 font-medium text-sm border-b-2 border-ink-700">Tableau de bord</button>
+      <button onclick="showAdminSection('books')" id="adminTabBooks" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Livres</button>
       <button onclick="showAdminSection('reports')" id="adminTabReports" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Signalements</button>
       <button onclick="showAdminSection('reviews')" id="adminTabReviews" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Avis</button>
       <button onclick="showAdminSection('messages')" id="adminTabMessages" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500 relative">Messages<span id="adminUnreadBadge" class="hidden absolute -top-1 -right-2 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
       <button onclick="showAdminSection('errors')" id="adminTabErrors" class="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-ink-500">Erreurs</button>
     </div>
 
-    <div id="adminBooksSection">
+    <div id="adminDashboardSection">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Revenus plateforme</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statRevenue">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Volume total vendu</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statVolume">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Ventes</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statSales">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Utilisateurs</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statUsers">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Vendeurs actifs</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statSellers">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Livres en vente</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statBooksLive">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Note moyenne</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statAvgRating">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide">Signalements en attente</p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statPendingReports">—</p>
+        </div>
+      </div>
+      <div class="bg-paper-100 border border-ink-100 rounded-xl p-6">
+        <p class="font-display text-lg font-600 text-ink-800 mb-4">Revenus des 30 derniers jours</p>
+        <canvas id="revenueChart" height="90"></canvas>
+      </div>
+    </div>
+
+    <div id="adminBooksSection" class="hidden">
       <div id="fundBanner" class="mb-4 rounded-xl border border-ink-100 bg-paper-100 p-4 text-sm text-ink-600"></div>
       <div id="adminBooksList" class="space-y-3"></div>
     </div>
@@ -919,7 +1008,7 @@ function showTab(name) {
   if (name === "library") loadLibrary();
   if (name === "messages") loadMyMessages();
   if (name === "suspended") loadSuspendedBooks();
-  if (name === "admin") loadAdminBooks();
+  if (name === "admin") loadAdminDashboard();
 }
 
 function money(cents, currency = "EUR") {
@@ -2054,18 +2143,86 @@ function updateAdminNavVisibility() {
 }
 
 function showAdminSection(section) {
-  ["books", "reports", "reviews", "messages", "errors"].forEach(s => {
+  ["dashboard", "books", "reports", "reviews", "messages", "errors"].forEach(s => {
     document.getElementById(`admin${s.charAt(0).toUpperCase() + s.slice(1)}Section`).classList.toggle("hidden", s !== section);
     const tab = document.getElementById(`adminTab${s.charAt(0).toUpperCase() + s.slice(1)}`);
     tab.classList.toggle("border-ink-700", s === section);
     tab.classList.toggle("text-ink-500", s !== section);
     tab.classList.toggle("border-transparent", s !== section);
   });
+  if (section === "dashboard") loadAdminDashboard();
   if (section === "books") loadAdminBooks();
   if (section === "reports") loadAdminReports();
   if (section === "reviews") loadAdminReviews();
   if (section === "messages") loadAdminMessages();
   if (section === "errors") loadAdminErrors();
+}
+
+let revenueChartInstance = null;
+
+async function loadAdminDashboard() {
+  const [purchasesRes, profilesRes, booksLiveRes, sellersRes, ratingRes, pendingReportsRes] = await Promise.all([
+    sb.from("purchases").select("amount_cents, platform_fee_cents, created_at, status").eq("status", "completed"),
+    sb.from("profiles").select("id", { count: "exact", head: true }),
+    sb.from("books").select("id", { count: "exact", head: true }).eq("status", "live"),
+    sb.from("profiles").select("id", { count: "exact", head: true }).eq("stripe_onboarding_complete", true),
+    sb.from("book_rating_stats").select("avg_rating"),
+    sb.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+  ]);
+
+  const purchases = purchasesRes.data ?? [];
+  const totalRevenue = purchases.reduce((sum, p) => sum + (p.platform_fee_cents || 0), 0);
+  const totalVolume = purchases.reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+
+  document.getElementById("statRevenue").textContent = money(totalRevenue);
+  document.getElementById("statVolume").textContent = money(totalVolume);
+  document.getElementById("statSales").textContent = purchases.length;
+  document.getElementById("statUsers").textContent = profilesRes.count ?? "—";
+  document.getElementById("statSellers").textContent = sellersRes.count ?? "—";
+  document.getElementById("statBooksLive").textContent = booksLiveRes.count ?? "—";
+  document.getElementById("statPendingReports").textContent = pendingReportsRes.count ?? "0";
+
+  const ratings = ratingRes.data ?? [];
+  const avgRating = ratings.length > 0 ? (ratings.reduce((s, r) => s + Number(r.avg_rating), 0) / ratings.length) : null;
+  document.getElementById("statAvgRating").textContent = avgRating ? `${avgRating.toFixed(1)} / 5` : "—";
+
+  // Revenus des 30 derniers jours, regroupes par jour
+  const days = [];
+  const revenueByDay = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    days.push(key);
+    revenueByDay[key] = 0;
+  }
+  for (const p of purchases) {
+    const key = (p.created_at || "").slice(0, 10);
+    if (key in revenueByDay) revenueByDay[key] += (p.platform_fee_cents || 0) / 100;
+  }
+
+  const ctx = document.getElementById("revenueChart");
+  if (revenueChartInstance) revenueChartInstance.destroy();
+  revenueChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: days.map(d => d.slice(5)), // MM-JJ
+      datasets: [{
+        label: "Revenus (EUR)",
+        data: days.map(d => revenueByDay[d]),
+        backgroundColor: "#B8873A",
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+        y: { beginAtZero: true, grid: { color: "#EAEDF3" } },
+      },
+    },
+  });
 }
 
 async function loadAdminBooks() {
