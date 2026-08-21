@@ -438,6 +438,12 @@
     <div id="adminDashboardSection">
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
+          <p class="text-xs text-ink-500 uppercase tracking-wide flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-ok inline-block animate-pulse"></span> En ligne maintenant
+          </p>
+          <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statOnlineNow">—</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-xl p-4">
           <p class="text-xs text-ink-500 uppercase tracking-wide">Revenus plateforme</p>
           <p class="font-display text-2xl font-600 text-ink-800 mt-1" id="statRevenue">—</p>
         </div>
@@ -2201,6 +2207,8 @@ function updateAdminNavVisibility() {
   document.getElementById("adminNavBtnMobile").classList.toggle("hidden", !currentProfile?.is_admin);
 }
 
+let onlineNowInterval = null;
+
 function showAdminSection(section) {
   ["dashboard", "books", "reports", "reviews", "messages", "errors"].forEach(s => {
     document.getElementById(`admin${s.charAt(0).toUpperCase() + s.slice(1)}Section`).classList.toggle("hidden", s !== section);
@@ -2209,7 +2217,12 @@ function showAdminSection(section) {
     tab.classList.toggle("text-ink-500", s !== section);
     tab.classList.toggle("border-transparent", s !== section);
   });
-  if (section === "dashboard") loadAdminDashboard();
+
+  clearInterval(onlineNowInterval);
+  if (section === "dashboard") {
+    loadAdminDashboard();
+    onlineNowInterval = setInterval(refreshOnlineNow, 20000); // rafraichit juste le compteur, pas tout le tableau de bord
+  }
   if (section === "books") loadAdminBooks();
   if (section === "reports") loadAdminReports();
   if (section === "reviews") loadAdminReviews();
@@ -2219,15 +2232,26 @@ function showAdminSection(section) {
 
 let revenueChartInstance = null;
 
+async function refreshOnlineNow() {
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const { count } = await sb.from("site_presence").select("visitor_id", { count: "exact", head: true }).gte("last_seen", twoMinutesAgo);
+  const el = document.getElementById("statOnlineNow");
+  if (el) el.textContent = count ?? "0";
+}
+
 async function loadAdminDashboard() {
-  const [purchasesRes, profilesRes, booksLiveRes, sellersRes, ratingRes, pendingReportsRes] = await Promise.all([
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+  const [purchasesRes, profilesRes, booksLiveRes, sellersRes, ratingRes, pendingReportsRes, onlineRes] = await Promise.all([
     sb.from("purchases").select("amount_cents, platform_fee_cents, created_at, status").eq("status", "completed"),
     sb.from("profiles").select("id", { count: "exact", head: true }),
     sb.from("books").select("id", { count: "exact", head: true }).eq("status", "live"),
     sb.from("profiles").select("id", { count: "exact", head: true }).eq("stripe_onboarding_complete", true),
     sb.from("book_rating_stats").select("avg_rating"),
     sb.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    sb.from("site_presence").select("visitor_id", { count: "exact", head: true }).gte("last_seen", twoMinutesAgo),
   ]);
+
+  document.getElementById("statOnlineNow").textContent = onlineRes.count ?? "0";
 
   const purchases = purchasesRes.data ?? [];
   const totalRevenue = purchases.reduce((sum, p) => sum + (p.platform_fee_cents || 0), 0);
@@ -2542,6 +2566,28 @@ window.addEventListener("unhandledrejection", (e) => {
 // ============================================================
 // INIT
 // ============================================================
+// ============================================================
+// PRESENCE (compteur "en ligne maintenant")
+// ============================================================
+function getVisitorId() {
+  let id = localStorage.getItem("aebook_visitor_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("aebook_visitor_id", id);
+  }
+  return id;
+}
+
+async function sendPresenceHeartbeat() {
+  try {
+    await sb.from("site_presence").upsert({
+      visitor_id: getVisitorId(),
+      user_id: currentUser?.id ?? null,
+      last_seen: new Date().toISOString(),
+    });
+  } catch (_) { /* pas grave si ca rate une fois, le prochain battement rattrape */ }
+}
+
 (async function init() {
   const isRecovery = window.location.hash.includes("type=recovery");
 
@@ -2555,6 +2601,9 @@ window.addEventListener("unhandledrejection", (e) => {
   updateAdminNavVisibility();
   updateUnreadBadge();
   updateAdminUnreadBadge();
+
+  sendPresenceHeartbeat();
+  setInterval(sendPresenceHeartbeat, 60000); // toutes les 60 secondes tant que la page reste ouverte
 
   if (isRecovery) {
     showTab("resetPassword"); // ne pas rediriger vers le catalogue : l'utilisateur doit d'abord choisir un nouveau mot de passe
