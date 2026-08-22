@@ -770,6 +770,10 @@ function populateEditCategorySelect() {
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Commentaire (optionnel)</label>
         <textarea id="reviewComment" rows="3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
       </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Pseudo affiche avec cet avis (optionnel)</label>
+        <input type="text" id="reviewPseudo" maxlength="40" placeholder="Laisse vide pour utiliser ton nom de compte" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+      </div>
       <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Publier l'avis</button>
       <p id="reviewMsg" class="text-sm text-err"></p>
     </form>
@@ -792,6 +796,7 @@ function setReviewRating(n) {
 function openReviewModal(bookId, existing) {
   document.getElementById("reviewBookId").value = bookId;
   document.getElementById("reviewComment").value = existing?.comment || "";
+  document.getElementById("reviewPseudo").value = existing?.reviewer_name || "";
   setReviewRating(existing?.rating || 0);
   document.getElementById("reviewMsg").textContent = "";
   document.getElementById("reviewModal").classList.remove("hidden");
@@ -806,12 +811,13 @@ document.getElementById("reviewForm").addEventListener("submit", async (e) => {
   const bookId = document.getElementById("reviewBookId").value;
   const rating = parseInt(document.getElementById("reviewRating").value || "0");
   const comment = document.getElementById("reviewComment").value.trim();
+  const reviewerName = document.getElementById("reviewPseudo").value.trim();
   const msg = document.getElementById("reviewMsg");
 
   if (!rating) { msg.textContent = "Choisis une note de 1 a 5 etoiles."; return; }
 
   const { error } = await sb.from("reviews").upsert(
-    { book_id: bookId, buyer_id: currentUser.id, rating, comment: comment || null, updated_at: new Date().toISOString() },
+    { book_id: bookId, buyer_id: currentUser.id, rating, comment: comment || null, reviewer_name: reviewerName || null, updated_at: new Date().toISOString() },
     { onConflict: "book_id,buyer_id" }
   );
   if (error) { msg.textContent = error.message; return; }
@@ -1461,7 +1467,7 @@ async function openBook(bookId) {
   // qu'une jointure sur nom de contrainte FK).
   const { data: reviews } = await sb
     .from("reviews")
-    .select("rating, comment, created_at, buyer_id")
+    .select("rating, comment, reviewer_name, created_at, buyer_id")
     .eq("book_id", bookId)
     .order("created_at", { ascending: false });
 
@@ -1479,7 +1485,7 @@ async function openBook(bookId) {
         <div class="border-t border-ink-100 pt-3 mt-3">
           <p class="text-gilt-500 text-sm">${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}</p>
           ${r.comment ? `<p class="text-sm text-ink-600 mt-1 break-words">${r.comment}</p>` : ""}
-          <p class="text-xs text-ink-400 mt-1">${reviewerNames[r.buyer_id] ?? "Acheteur"} &middot; ${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
+          <p class="text-xs text-ink-400 mt-1">${r.reviewer_name || reviewerNames[r.buyer_id] || "Acheteur"} &middot; ${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
         </div>
       `).join("");
 
@@ -2030,7 +2036,7 @@ async function loadLibrary() {
 
   const { data: myReviews } = await sb
     .from("reviews")
-    .select("book_id, rating, comment")
+    .select("book_id, rating, comment, reviewer_name")
     .eq("buyer_id", currentUser.id);
   const myReviewByBook = {};
   for (const r of myReviews ?? []) myReviewByBook[r.book_id] = r;
