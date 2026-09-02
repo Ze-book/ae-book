@@ -503,11 +503,14 @@
 </main>
 
 <!-- ============================= PREVIEW MODAL ============================= -->
-<div id="previewModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
-  <div class="bg-paper-100 rounded-2xl w-full max-w-2xl h-[85vh] relative overflow-hidden flex flex-col">
-    <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
-      <p class="font-display font-600 text-ink-800">Apercu du livre</p>
-      <button onclick="closePreview()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+<div id="previewModal" class="hidden fixed inset-0 z-50 bg-ink-900/90 flex items-center justify-center p-1 sm:p-4">
+  <div class="bg-paper-100 rounded-2xl w-full h-full sm:max-w-5xl sm:h-[96vh] relative overflow-hidden flex flex-col">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100 shrink-0">
+      <p class="font-display font-600 text-ink-800" id="previewTitle">Lecture</p>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleReaderTheme()" id="readerThemeBtn" class="hidden text-ink-500 hover:text-ink-900 text-sm" title="Mode jour/nuit">🌙</button>
+        <button onclick="closePreview()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+      </div>
     </div>
     <div id="previewContainer" class="flex-1 overflow-hidden"></div>
   </div>
@@ -515,7 +518,8 @@
 
 <script>
 // Etat du lecteur (partage entre l'apercu vendeur et la lecture bibliotheque)
-const readerState = { pdfDoc: null, pageNum: 1, numPages: 0, epubRendition: null, format: null, maxPages: null, epubTurns: 0 };
+const readerState = { pdfDoc: null, pageNum: 1, numPages: 0, epubRendition: null, format: null, maxPages: null, epubTurns: 0, bookId: null, epubBook: null };
+let readerNightMode = false;
 
 function spinnerMarkup(message) {
   return `
@@ -545,21 +549,28 @@ function readerModalMarkup() {
     <div class="w-full h-full flex flex-col bg-ink-900">
       <div id="readerCanvasWrap" class="flex-1 overflow-auto flex items-center justify-center p-2">${spinnerMarkup("Preparation de la lecture...")}</div>
       <div class="flex items-center justify-center gap-4 py-2.5 bg-ink-800 text-paper-100 text-sm shrink-0">
-        <button onclick="readerPrevPage()" class="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 rounded-lg font-medium">&larr; Page precedente</button>
+        <button onclick="readerPrevPage()" class="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 rounded-lg font-medium">&larr; Precedente</button>
         <span id="readerPageIndicator" class="font-mono">...</span>
-        <button onclick="readerNextPage()" class="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 rounded-lg font-medium">Page suivante &rarr;</button>
+        <button onclick="readerNextPage()" class="px-3 py-1.5 bg-ink-600 hover:bg-ink-500 rounded-lg font-medium">Suivante &rarr;</button>
       </div>
     </div>
   `;
 }
 
-async function openReader(url, format, errorLabel, maxPages) {
+// title : affiche dans l'en-tete. bookId : si fourni, la position de lecture
+// est sauvegardee a la fermeture et reprise au prochain ouverture.
+// resumePosition : page (PDF) ou CFI epub.js (EPUB) a rouvrir directement.
+async function openReader(url, format, errorLabel, maxPages, title, bookId, resumePosition) {
   const container = document.getElementById("previewContainer");
   document.getElementById("previewModal").classList.remove("hidden");
-  readerState.pdfDoc = null; readerState.epubRendition = null; readerState.pageNum = 1; readerState.numPages = 0;
+  document.getElementById("previewTitle").textContent = title || "Lecture";
+  document.getElementById("readerThemeBtn").classList.toggle("hidden", !(format === "pdf" || format === "epub"));
+  readerState.pdfDoc = null; readerState.epubRendition = null; readerState.epubBook = null;
+  readerState.pageNum = 1; readerState.numPages = 0;
   readerState.format = format;
   readerState.maxPages = maxPages || null;
   readerState.epubTurns = 0;
+  readerState.bookId = bookId || null;
 
   if (format === "pdf") {
     container.innerHTML = readerModalMarkup();
@@ -567,6 +578,8 @@ async function openReader(url, format, errorLabel, maxPages) {
       const loadingTask = pdfjsLib.getDocument(url);
       readerState.pdfDoc = await loadingTask.promise;
       readerState.numPages = readerState.pdfDoc.numPages;
+      const resumePage = parseInt(resumePosition, 10);
+      if (resumePage && resumePage >= 1 && resumePage <= readerState.numPages) readerState.pageNum = resumePage;
       await renderPdfPage();
     } catch (e) {
       container.innerHTML = `<p class="p-6 text-ink-600">${errorLabel} : ${e.message}</p>`;
@@ -577,12 +590,17 @@ async function openReader(url, format, errorLabel, maxPages) {
     wrap.innerHTML = `<div id="epubViewer" class="w-full h-full"></div>`;
     try {
       const epubBook = ePub(url);
+      readerState.epubBook = epubBook;
       const rendition = epubBook.renderTo("epubViewer", { width: "100%", height: "100%" });
       readerState.epubRendition = rendition;
-      await rendition.display();
+      applyReaderTheme();
+      await rendition.display(resumePosition || undefined);
       epubBook.locations.generate(1000).then(() => {
-        document.getElementById("readerPageIndicator").textContent =
-          `${Math.round(epubBook.locations.percentageFromCfi(rendition.currentLocation().start.cfi) * 100)}%`;
+        const loc = rendition.currentLocation();
+        if (loc?.start?.cfi) {
+          document.getElementById("readerPageIndicator").textContent =
+            `${Math.round(epubBook.locations.percentageFromCfi(loc.start.cfi) * 100)}%`;
+        }
       }).catch(() => {});
       rendition.on("relocated", (loc) => {
         const pct = epubBook.locations.total ? Math.round(epubBook.locations.percentageFromCfi(loc.start.cfi) * 100) : null;
@@ -596,11 +614,27 @@ async function openReader(url, format, errorLabel, maxPages) {
   }
 }
 
+function applyReaderTheme() {
+  if (readerState.epubRendition) {
+    readerState.epubRendition.themes.register("night", { body: { background: "#1C2B45 !important", color: "#F3ECDD !important" } });
+    readerState.epubRendition.themes.register("day", { body: { background: "#ffffff !important", color: "#111111 !important" } });
+    readerState.epubRendition.themes.select(readerNightMode ? "night" : "day");
+  }
+  const canvas = document.getElementById("readerCanvas");
+  if (canvas) canvas.style.filter = readerNightMode ? "invert(1) hue-rotate(180deg)" : "";
+}
+
+function toggleReaderTheme() {
+  readerNightMode = !readerNightMode;
+  document.getElementById("readerThemeBtn").textContent = readerNightMode ? "☀️" : "🌙";
+  applyReaderTheme();
+}
+
 async function renderPdfPage() {
   const page = await readerState.pdfDoc.getPage(readerState.pageNum);
   const wrap = document.getElementById("readerCanvasWrap");
   const unscaled = page.getViewport({ scale: 1 });
-  const scale = Math.min((wrap.clientWidth - 16) / unscaled.width, (wrap.clientHeight - 16) / unscaled.height, 2.5);
+  const scale = Math.min((wrap.clientWidth - 16) / unscaled.width, (wrap.clientHeight - 16) / unscaled.height, 3);
   const viewport = page.getViewport({ scale: Math.max(scale, 0.4) });
 
   wrap.innerHTML = `<canvas id="readerCanvas"></canvas>`;
@@ -609,6 +643,7 @@ async function renderPdfPage() {
   canvas.height = viewport.height;
   canvas.className = "shadow-2xl rounded";
   await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+  applyReaderTheme();
 
   const limitSuffix = readerState.maxPages ? ` (extrait : ${readerState.maxPages} pages max)` : "";
   document.getElementById("readerPageIndicator").textContent = `Page ${readerState.pageNum} / ${readerState.numPages}${limitSuffix}`;
@@ -645,20 +680,57 @@ function readerPrevPage() {
   }
 }
 
+// Navigation au clavier, seulement quand le lecteur est ouvert.
+document.addEventListener("keydown", (e) => {
+  if (document.getElementById("previewModal").classList.contains("hidden")) return;
+  if (e.key === "ArrowRight") readerNextPage();
+  else if (e.key === "ArrowLeft") readerPrevPage();
+  else if (e.key === "Escape") closePreview();
+});
+
 function previewSelectedBook() {
   const fileInput = document.getElementById("bookFile");
   const file = fileInput.files[0];
   if (!file) { alert("Choisis d'abord un fichier PDF ou EPUB a apercevoir."); return; }
   const ext = file.name.split(".").pop().toLowerCase();
   const blobUrl = URL.createObjectURL(file);
-  openReader(blobUrl, ext === "pdf" || ext === "epub" ? ext : null, "Impossible d'afficher l'apercu");
+  openReader(blobUrl, ext === "pdf" || ext === "epub" ? ext : null, "Impossible d'afficher l'apercu", null, "Apercu avant publication");
+}
+
+// Sauvegarde la position de lecture (page PDF ou position EPUB), uniquement
+// pour une lecture d'un livre reellement possede (readerState.bookId defini).
+async function saveReadingProgress() {
+  if (!readerState.bookId || !currentUser) return;
+  let position = null, percent = null;
+
+  if (readerState.format === "pdf" && readerState.numPages) {
+    position = String(readerState.pageNum);
+    percent = Math.round((readerState.pageNum / readerState.numPages) * 100);
+  } else if (readerState.format === "epub" && readerState.epubRendition) {
+    try {
+      const loc = readerState.epubRendition.currentLocation();
+      if (loc?.start?.cfi) {
+        position = loc.start.cfi;
+        const indicatorText = document.getElementById("readerPageIndicator")?.textContent || "";
+        const match = indicatorText.match(/(\d+)%/);
+        if (match) percent = parseInt(match[1], 10);
+      }
+    } catch (_) { /* pas grave, on ne sauvegarde juste rien cette fois */ }
+  }
+
+  if (!position) return;
+  await sb.from("reading_progress").upsert(
+    { user_id: currentUser.id, book_id: readerState.bookId, position, percent, updated_at: new Date().toISOString() },
+    { onConflict: "user_id,book_id" }
+  );
 }
 
 function closePreview() {
+  saveReadingProgress(); // avant de nettoyer l'etat, tant qu'on a encore les infos
   document.getElementById("previewModal").classList.add("hidden");
   document.getElementById("previewContainer").innerHTML = "";
   if (readerState.epubRendition) { readerState.epubRendition.destroy(); }
-  readerState.pdfDoc = null; readerState.epubRendition = null;
+  readerState.pdfDoc = null; readerState.epubRendition = null; readerState.epubBook = null; readerState.bookId = null;
 }
 </script>
 
@@ -1490,10 +1562,7 @@ async function openBook(bookId) {
       `).join("");
 
   const actionButton = alreadyOwned
-    ? `<div class="mt-4 flex gap-2">
-         <button onclick="readBook('${book.id}')" class="flex-1 bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
-         <button onclick="download('${book.id}')" class="flex-1 bg-ink-700 hover:bg-ink-800 text-white font-medium py-3 rounded-lg transition">Telecharger</button>
-       </div>
+    ? `<button onclick="readBook('${book.id}')" class="mt-4 w-full bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
        <p class="text-xs text-ink-500 mt-2 text-center">Deja dans ta bibliotheque</p>`
     : book.price_cents === 0
     ? `<button onclick="claimFreeBook('${book.id}')" class="mt-4 w-full bg-ok hover:opacity-90 text-white font-medium py-3 rounded-lg transition">Obtenir gratuitement</button>
@@ -1567,7 +1636,7 @@ async function claimFreeBook(bookId) {
     else alert(error);
     return;
   }
-  openBook(bookId); // rafraichit la fiche pour afficher "Lire en ligne / Telecharger"
+  openBook(bookId); // rafraichit la fiche pour afficher "Lire en ligne"
 }
 
 // ============================================================
@@ -2041,9 +2110,18 @@ async function loadLibrary() {
   const myReviewByBook = {};
   for (const r of myReviews ?? []) myReviewByBook[r.book_id] = r;
 
+  const { data: progressRows } = await sb
+    .from("reading_progress")
+    .select("book_id, percent")
+    .eq("user_id", currentUser.id);
+  const progressByBook = {};
+  for (const p of progressRows ?? []) progressByBook[p.book_id] = p.percent;
+
   list.innerHTML = purchases.map(p => {
     const mine = myReviewByBook[p.book_id];
     const authorLabel = (p.books?.author_name || "l'auteur").replace(/'/g, "&apos;");
+    const percent = progressByBook[p.book_id];
+    const hasProgress = percent !== undefined && percent !== null && percent > 0;
     return `
     <div class="bg-paper-100 border border-ink-100 rounded-xl p-3 flex items-center gap-4">
       <div class="spine w-16 aspect-[2/3] rounded-md bg-ink-600 flex items-center justify-center overflow-hidden shrink-0">
@@ -2051,17 +2129,22 @@ async function loadLibrary() {
       </div>
       <div class="flex-1 min-w-0">
         <p class="font-medium text-ink-800 break-words">${p.books?.title ?? "Livre"}</p>
-        <div class="flex gap-3 flex-wrap mt-1">
+        ${hasProgress ? `
+          <div class="mt-1.5 max-w-[180px]">
+            <div class="h-1.5 bg-ink-100 rounded-full overflow-hidden">
+              <div class="h-full bg-gilt-500 rounded-full" style="width:${Math.min(percent, 100)}%"></div>
+            </div>
+            <p class="text-[11px] text-ink-500 mt-0.5">${Math.round(percent)}% lu</p>
+          </div>
+        ` : ""}
+        <div class="flex gap-3 flex-wrap mt-1.5">
           <button onclick='openReviewModal("${p.book_id}", ${JSON.stringify(mine ?? null).replace(/'/g, "&apos;")})' class="text-xs font-medium text-gilt-700 underline">
             ${mine ? "Modifier mon avis" : "Laisser un avis"}
           </button>
           <button onclick="openComposeModal(false, '${p.seller_id}', '${authorLabel}', '${p.book_id}')" class="text-xs font-medium text-ink-600 underline">Contacter l'auteur</button>
         </div>
       </div>
-      <div class="flex flex-col gap-2 shrink-0">
-        <button onclick="readBook('${p.book_id}')" class="bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Lire en ligne</button>
-        <button onclick="download('${p.book_id}')" class="bg-ink-700 hover:bg-ink-800 text-white text-sm font-medium px-4 py-2 rounded-lg">Telecharger</button>
-      </div>
+      <button onclick="readBook('${p.book_id}')" class="bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium px-4 py-2 rounded-lg shrink-0">${hasProgress ? "Reprendre" : "Lire en ligne"}</button>
     </div>
   `;
   }).join("");
@@ -2081,43 +2164,29 @@ async function reassembleChunks(urls, onProgress) {
   return new Blob(buffers);
 }
 
-async function download(bookId) {
-  showReaderLoading("Preparation du telechargement...");
-  const { data, error } = await invokeEdge("get-download-url", { book_id: bookId });
-  if (error) { closePreview(); alert(error); return; }
-
-  if (data.chunks) {
-    const blob = await reassembleChunks(data.chunks, (i, total) => updateReaderLoading(`Telechargement... (${i}/${total})`));
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = `${data.title}.${data.file_format}`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-  } else {
-    window.open(data.url, "_blank");
-  }
-  closePreview();
-}
-
 // Lecture en ligne : reutilise la modale d'apercu, mais avec l'URL signee (ou
 // le blob reassemble pour un livre decoupe) du fichier deja achete.
 async function readBook(bookId) {
   showReaderLoading("Chargement du livre...");
-  const { data, error } = await invokeEdge("get-download-url", { book_id: bookId });
+  const [{ data, error }, { data: progress }] = await Promise.all([
+    invokeEdge("get-download-url", { book_id: bookId }),
+    currentUser ? sb.from("reading_progress").select("position").eq("user_id", currentUser.id).eq("book_id", bookId).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
   if (error) { closePreview(); alert(error); return; }
+  const resumePosition = progress?.position || null;
 
   if (data.chunks) {
     const blob = await reassembleChunks(data.chunks, (i, total) => updateReaderLoading(`Chargement du livre... (${i}/${total})`));
     const blobUrl = URL.createObjectURL(blob);
-    openReader(blobUrl, data.file_format, "Impossible d'afficher la lecture");
+    openReader(blobUrl, data.file_format, "Impossible d'afficher la lecture", null, data.title, bookId, resumePosition);
   } else {
-    openReader(data.url, data.file_format, "Impossible d'afficher la lecture");
+    openReader(data.url, data.file_format, "Impossible d'afficher la lecture", null, data.title, bookId, resumePosition);
   }
 }
 
 // Extrait gratuit : pas besoin d'avoir achete le livre, mais la lecture
-// est bloquee au-dela du nombre de pages autorise par le vendeur.
+// est bloquee au-dela du nombre de pages autorise par le vendeur. Pas de
+// sauvegarde de progression ici (le livre n'est pas encore possede).
 async function previewFreeExcerpt(bookId) {
   showReaderLoading("Chargement de l'extrait...");
   const { data, error } = await invokeEdge("get-preview-url", { book_id: bookId });
@@ -2126,9 +2195,9 @@ async function previewFreeExcerpt(bookId) {
   if (data.chunks) {
     const blob = await reassembleChunks(data.chunks, (i, total) => updateReaderLoading(`Chargement de l'extrait... (${i}/${total})`));
     const blobUrl = URL.createObjectURL(blob);
-    openReader(blobUrl, data.file_format, "Impossible d'afficher l'extrait", data.max_pages);
+    openReader(blobUrl, data.file_format, "Impossible d'afficher l'extrait", data.max_pages, data.title);
   } else {
-    openReader(data.url, data.file_format, "Impossible d'afficher l'extrait", data.max_pages);
+    openReader(data.url, data.file_format, "Impossible d'afficher l'extrait", data.max_pages, data.title);
   }
 }
 
