@@ -1105,6 +1105,11 @@ const STATUS_LABEL = {
 function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.getElementById("tab-" + name).classList.add("active");
+  // On ne garde le lien direct ?book=... dans l'URL que tant qu'on reste sur
+  // la fiche du livre ; des qu'on change d'onglet, on nettoie l'URL.
+  if (name !== "detail" && window.location.search.includes("book=")) {
+    history.replaceState({}, "", window.location.pathname);
+  }
   if (name === "marketplace") renderMarketplace();
   if (name === "seller") loadSellerData();
   if (name === "library") loadLibrary();
@@ -1562,7 +1567,10 @@ async function openBook(bookId) {
       `).join("");
 
   const actionButton = alreadyOwned
-    ? `<button onclick="readBook('${book.id}')" class="mt-4 w-full bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
+    ? `<div class="mt-4 flex gap-2">
+         <button onclick="readBook('${book.id}')" class="flex-1 bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
+         <button onclick="downloadBook('${book.id}', this)" class="flex-1 bg-paper-200 hover:bg-paper-300 text-ink-800 font-medium py-3 rounded-lg transition border border-ink-100">Telecharger</button>
+       </div>
        <p class="text-xs text-ink-500 mt-2 text-center">Deja dans ta bibliotheque</p>`
     : book.price_cents === 0
     ? `<button onclick="claimFreeBook('${book.id}')" class="mt-4 w-full bg-ok hover:opacity-90 text-white font-medium py-3 rounded-lg transition">Obtenir gratuitement</button>
@@ -1598,7 +1606,10 @@ async function openBook(bookId) {
         <p class="text-ink-600 mt-3 whitespace-pre-line break-words">${book.description ?? ""}</p>
         <p class="font-mono text-2xl text-gilt-700 mt-6">${priceLabel(book.price_cents, book.currency.toUpperCase())}</p>
         ${actionButton}
-        <button onclick='openReportModal("${book.id}")' class="text-xs text-ink-400 underline mt-3">Signaler ce livre</button>
+        <div class="flex gap-4 mt-3">
+          <button onclick="copyBookLink('${book.id}', this)" class="text-xs text-ink-500 underline">Copier le lien de ce livre</button>
+          <button onclick='openReportModal("${book.id}")' class="text-xs text-ink-400 underline">Signaler ce livre</button>
+        </div>
       </div>
     </div>
     <div class="mt-8 border-t border-ink-100 pt-6">
@@ -1609,6 +1620,7 @@ async function openBook(bookId) {
       ${reviewsHtml}
     </div>
   `;
+  history.replaceState({}, "", bookShareUrl(book.id));
   showTab("detail");
 }
 
@@ -1766,6 +1778,7 @@ async function loadSellerData() {
           <div class="flex gap-3 mt-1">
             ${canRetry ? `<button onclick="retryVerification('${b.id}', this)" class="text-xs font-medium text-gilt-700 underline">Relancer la verification</button>` : ""}
             <button onclick='openEditBook(${JSON.stringify(b).replace(/'/g, "&apos;")})' class="text-xs font-medium text-ink-600 underline">Modifier</button>
+            <button onclick="copyBookLink('${b.id}', this)" class="text-xs font-medium text-ink-600 underline">Copier le lien</button>
             ${canToggleListing ? `<button onclick="toggleListing('${b.id}', '${b.status}')" class="text-xs font-medium text-err underline">${b.status === "live" ? "Retirer de la vente" : "Remettre en vente"}</button>` : ""}
           </div>
         </div>
@@ -2144,7 +2157,10 @@ async function loadLibrary() {
           <button onclick="openComposeModal(false, '${p.seller_id}', '${authorLabel}', '${p.book_id}')" class="text-xs font-medium text-ink-600 underline">Contacter l'auteur</button>
         </div>
       </div>
-      <button onclick="readBook('${p.book_id}')" class="bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium px-4 py-2 rounded-lg shrink-0">${hasProgress ? "Reprendre" : "Lire en ligne"}</button>
+      <div class="flex flex-col gap-2 shrink-0">
+        <button onclick="readBook('${p.book_id}')" class="bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium px-4 py-2 rounded-lg">${hasProgress ? "Reprendre" : "Lire en ligne"}</button>
+        <button onclick="downloadBook('${p.book_id}', this)" class="bg-paper-200 hover:bg-paper-300 text-ink-800 text-sm font-medium px-4 py-2 rounded-lg border border-ink-100">Telecharger</button>
+      </div>
     </div>
   `;
   }).join("");
@@ -2162,6 +2178,60 @@ async function reassembleChunks(urls, onProgress) {
     buffers.push(await res.arrayBuffer());
   }
   return new Blob(buffers);
+}
+
+// Telechargement local du fichier achete : contrairement a "Lire en ligne"
+// (qui affiche le livre dans la visionneuse integree), ceci sauvegarde une
+// copie du fichier sur l'appareil de l'utilisateur pour une lecture hors-ligne.
+async function downloadBook(bookId, btn) {
+  const originalText = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = "Telechargement..."; }
+  try {
+    const { data, error } = await invokeEdge("get-download-url", { book_id: bookId });
+    if (error) throw new Error(error);
+
+    const urls = data.chunks && data.chunks.length > 0 ? data.chunks : [data.url];
+    const blob = await reassembleChunks(urls, (i, total) => {
+      if (btn && total > 1) btn.textContent = `Telechargement... (${i}/${total})`;
+    });
+
+    const ext = data.file_format === "epub" ? "epub" : "pdf";
+    const safeTitle = (data.title || "livre").replace(/[\\/:*?"<>|]+/g, "").trim() || "livre";
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `${safeTitle}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  } catch (err) {
+    alert(err.message || "Impossible de telecharger ce livre.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+
+// Lien partageable direct vers la page d'un livre (utilise via ?book=<id>,
+// lu au demarrage dans init()). Permet a un auteur de partager son livre
+// sans que l'acheteur ait a le chercher dans le catalogue.
+function bookShareUrl(bookId) {
+  return `${window.location.origin}${window.location.pathname}?book=${bookId}`;
+}
+
+async function copyBookLink(bookId, btn) {
+  const url = bookShareUrl(bookId);
+  try {
+    await navigator.clipboard.writeText(url);
+    if (btn) {
+      const original = btn.textContent;
+      btn.textContent = "Lien copie !";
+      setTimeout(() => { if (btn) btn.textContent = original; }, 2000);
+    }
+  } catch (_) {
+    prompt("Copie ce lien :", url);
+  }
 }
 
 // Lecture en ligne : reutilise la modale d'apercu, mais avec l'URL signee (ou
@@ -2665,6 +2735,7 @@ async function sendPresenceHeartbeat() {
 
 (async function init() {
   const isRecovery = window.location.hash.includes("type=recovery");
+  const sharedBookId = new URLSearchParams(window.location.search).get("book");
 
   const { data: { session } } = await sb.auth.getSession();
   currentUser = session?.user ?? null;
@@ -2682,6 +2753,12 @@ async function sendPresenceHeartbeat() {
 
   if (isRecovery) {
     showTab("resetPassword"); // ne pas rediriger vers le catalogue : l'utilisateur doit d'abord choisir un nouveau mot de passe
+  } else if (sharedBookId) {
+    // Lien partage vers un livre precis (?book=<id>) : on ouvre directement
+    // sa fiche. Si le livre n'existe pas/plus, openBook() ne fait rien et on
+    // retombe sur le catalogue.
+    await openBook(sharedBookId);
+    if (!document.getElementById("tab-detail").classList.contains("active")) showTab("marketplace");
   } else {
     showTab("marketplace");
   }
