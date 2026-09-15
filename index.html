@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ae-book — La marketplace des auteurs independants</title>
+<title>Ae-book — La marketplace des auteurs indépendants</title>
 <link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png" />
 <link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png" />
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231C2B45'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='34' font-weight='600' fill='%23B8873A' text-anchor='middle'%3E%C3%86%3C/text%3E%3C/svg%3E" />
-<meta name="description" content="Achetez et vendez des ebooks (PDF/EPUB) directement entre auteurs independants et lecteurs. Verification antivirus automatique, lecture en ligne, paiement securise par Stripe." />
-<meta property="og:title" content="Ae-book — La marketplace des auteurs independants" />
-<meta property="og:description" content="Achetez et vendez des ebooks directement entre auteurs independants et lecteurs, en toute securite." />
+<meta name="description" content="Achetez et vendez des ebooks (PDF/EPUB) directement entre auteurs indépendants et lecteurs. Vérification antivirus automatique, lecture en ligne, paiement sécurisé par Stripe." />
+<meta property="og:title" content="Ae-book — La marketplace des auteurs indépendants" />
+<meta property="og:description" content="Achetez et vendez des ebooks directement entre auteurs indépendants et lecteurs, en toute sécurité." />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Ae-book — La marketplace des auteurs independants" />
-<meta name="twitter:description" content="Achetez et vendez des ebooks directement entre auteurs independants et lecteurs, en toute securite." />
+<meta name="twitter:title" content="Ae-book — La marketplace des auteurs indépendants" />
+<meta name="twitter:description" content="Achetez et vendez des ebooks directement entre auteurs indépendants et lecteurs, en toute sécurité." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -67,9 +67,9 @@
   ::-webkit-scrollbar { width: 10px; }
   ::-webkit-scrollbar-thumb { background: #C7D0E1; border-radius: 6px; }
 
-  /* --- Retouches visuelles globales : appliquees automatiquement a tous
-     les elements existants via leurs classes partagees, sans toucher
-     au HTML lui-meme (donc sans risque de casser une structure). --- */
+  /* --- Retouches visuelles globales : appliquées automatiquement a tous
+     les éléments existants via leurs classes partagées, sans toucher
+     au HTML lui-même (donc sans risque de casser une structure). --- */
 
   /* Profondeur subtile sur toutes les cartes "papier" */
   .bg-paper-100.border-ink-100 {
@@ -92,7 +92,7 @@
   /* En-tete plus net au scroll */
   header.sticky { box-shadow: 0 1px 0 rgba(28,43,69,0.06); }
 
-  /* Focus clavier propre, coherent avec la palette (accessibilite) */
+  /* Focus clavier propre, cohérent avec la palette (accessibilite) */
   input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible {
     outline: 2px solid #B8873A;
     outline-offset: 1px;
@@ -119,7 +119,7 @@
 
 <!-- ============================= CONFIG ============================= -->
 <script>
-  // --- A REMPLIR avant deploiement ---
+  // --- A REMPLIR avant déploiement ---
   const SUPABASE_URL = "https://bwnsoqbwqvcjnmohndof.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bnNvcWJ3cXZjam5tb2huZG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MDYzNjAsImV4cCI6MjA5ODk4MjM2MH0.lVcbQKOvXIPNT2BuTinue0knHV1P8fVkqrPRSXWKr10"
   const R2_COVERS_PUBLIC_URL = "https://pub-a9846bb0eba942dda05f1026b9fe1529.r2.dev"; // URL publique du bucket R2 des couvertures
@@ -137,7 +137,7 @@
     <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-ink-600">
       <button onclick="showTab('marketplace')" class="hover:text-ink-900">Explorer</button>
       <button onclick="showTab('seller')" class="hover:text-ink-900">Vendre un livre</button>
-      <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliotheque</button>
+      <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliothèque</button>
       <button onclick="showTab('messages')" class="hover:text-ink-900 relative">Messagerie<span id="unreadBadge" class="hidden absolute -top-2 -right-3 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
       <button onclick="showTab('suspended')" class="hover:text-ink-900">Livres suspendus</button>
       <button onclick="showTab('admin')" id="adminNavBtn" class="hidden hover:text-ink-900 text-err">Admin</button>
@@ -160,7 +160,7 @@
   <section id="tab-auth" class="tab max-w-md mx-auto">
     <div class="bg-paper-100 border border-ink-100 rounded-2xl p-8 shadow-sm">
       <h2 class="font-display text-2xl font-600 text-ink-800 mb-1" id="authTitle">Se connecter</h2>
-      <p class="text-sm text-ink-500 mb-6">Accede a tes achats et gere tes ventes.</p>
+      <p class="text-sm text-ink-500 mb-6">Accède à tes achats et gère tes ventes.</p>
       <form id="authForm" class="space-y-4">
         <div>
           <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Email</label>
@@ -169,12 +169,12 @@
         <div>
           <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Mot de passe</label>
           <input required type="password" minlength="6" id="authPassword" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500" />
-          <button type="button" onclick="sendPasswordReset()" id="forgotPasswordBtn" class="text-xs text-ink-500 underline mt-1">Mot de passe oublie ?</button>
+          <button type="button" onclick="sendPasswordReset()" id="forgotPasswordBtn" class="text-xs text-ink-500 underline mt-1">Mot de passe oublié ?</button>
         </div>
         <div id="cguRow" class="hidden flex items-start gap-2">
           <input type="checkbox" id="authCgu" class="mt-1" />
           <label for="authCgu" class="text-sm text-ink-600">
-            J'accepte les <button type="button" onclick="openCguModal()" class="text-gilt-700 underline">Conditions Generales d'Utilisation</button>
+            J'accepte les <button type="button" onclick="openCguModal()" class="text-gilt-700 underline">Conditions Générales d'Utilisation</button>
           </label>
         </div>
         <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">
@@ -185,7 +185,7 @@
       <p id="authInfo" class="text-ok text-sm mt-3 hidden"></p>
       <p class="text-sm text-ink-500 mt-5 text-center">
         <span id="authSwitchText">Pas encore de compte ?</span>
-        <button onclick="toggleAuthMode()" class="text-gilt-700 font-medium underline" id="authSwitchBtn">Creer un compte</button>
+        <button onclick="toggleAuthMode()" class="text-gilt-700 font-medium underline" id="authSwitchBtn">Créer un compte</button>
       </p>
     </div>
   </section>
@@ -210,33 +210,33 @@
   <div id="cguModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
     <div class="bg-paper-100 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6">
       <div class="flex items-center justify-between mb-4">
-        <p class="font-display text-xl font-600 text-ink-800">Conditions Generales d'Utilisation</p>
+        <p class="font-display text-xl font-600 text-ink-800">Conditions Générales d'Utilisation</p>
         <button onclick="closeCguModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
       </div>
       <div class="text-sm text-ink-600 space-y-3 leading-relaxed">
-        <p><strong>1. Objet.</strong> Ae-book est une marketplace permettant a des vendeurs independants de publier et vendre des livres numeriques (PDF/EPUB), et a des acheteurs de les acquerir et les consulter.</p>
-        <p><strong>2. Compte utilisateur.</strong> L'utilisateur est responsable de la confidentialite de ses identifiants et de l'exactitude des informations fournies.</p>
-        <p><strong>3. Obligations du vendeur.</strong> Le vendeur garantit detenir tous les droits necessaires sur les contenus qu'il publie (droits d'auteur, droits de reproduction et de diffusion). Il s'engage a ne publier aucun contenu illicite, contrefaisant, ou portant atteinte aux droits de tiers. Ae-book se reserve le droit de retirer tout contenu signale ou detecte comme non conforme.</p>
-        <p><strong>4. Verification des fichiers.</strong> Chaque fichier publie fait l'objet d'un controle technique et d'un scan antivirus automatise avant mise en vente. Ce controle ne constitue pas une validation du contenu editorial ni une garantie d'absence totale de risque.</p>
-        <p><strong>5. Achat et livraison.</strong> L'achat donne acces a une lecture en ligne et un telechargement du fichier. Le contenu numerique etant delivre immediatement apres paiement, l'acheteur reconnait et accepte expressement, conformement a l'article L221-28 du Code de la consommation, renoncer a son droit de retractation des lors que la lecture ou le telechargement a commence.</p>
-        <p><strong>6. Prix et commission.</strong> Ae-book percoit une commission de 20% sur chaque vente, le solde etant reverse automatiquement au vendeur via Stripe Connect. Les prix sont affiches TTC.</p>
-        <p><strong>7. Paiement.</strong> Les paiements sont traites par Stripe. Ae-book ne stocke aucune donnee bancaire.</p>
-        <p><strong>8. Avis.</strong> Seuls les acheteurs ayant effectivement achete un livre peuvent y laisser un avis. Les avis doivent rester loyaux et respectueux.</p>
-        <p><strong>9. Responsabilite.</strong> Ae-book agit en tant qu'intermediaire technique et n'est pas editeur des contenus vendus par les vendeurs tiers.</p>
+        <p><strong>1. Objet.</strong> Ae-book est une marketplace permettant à des vendeurs indépendants de publier et vendre des livres numériques (PDF/EPUB), et à des acheteurs de les acquérir et les consulter.</p>
+        <p><strong>2. Compte utilisateur.</strong> L'utilisateur est responsable de la confidentialité de ses identifiants et de l'exactitude des informations fournies.</p>
+        <p><strong>3. Obligations du vendeur.</strong> Le vendeur garantit détenir tous les droits nécessaires sur les contenus qu'il publie (droits d'auteur, droits de reproduction et de diffusion). Il s'engage à ne publier aucun contenu illicite, contrefaisant, ou portant atteinte aux droits de tiers. Ae-book se réserve le droit de retirer tout contenu signalé ou détecté comme non conforme.</p>
+        <p><strong>4. Vérification des fichiers.</strong> Chaque fichier publié fait l'objet d'un contrôle technique et d'un scan antivirus automatisé avant mise en vente. Ce contrôle ne constitue pas une validation du contenu éditorial ni une garantie d'absence totale de risque.</p>
+        <p><strong>5. Achat et livraison.</strong> L'achat donne accès à une lecture en ligne et un téléchargement du fichier. Le contenu numérique étant délivré immédiatement après paiement, l'acheteur reconnaît et accepte expressément, conformément à l'article L221-28 du Code de la consommation, renoncer à son droit de rétractation dès lors que la lecture ou le téléchargement a commencé.</p>
+        <p><strong>6. Prix et commission.</strong> Ae-book perçoit une commission de 20% sur chaque vente, le solde étant reversé automatiquement au vendeur via Stripe Connect. Les prix sont affichés TTC.</p>
+        <p><strong>7. Paiement.</strong> Les paiements sont traités par Stripe. Ae-book ne stocke aucune donnée bancaire.</p>
+        <p><strong>8. Avis.</strong> Seuls les acheteurs ayant effectivement acheté un livre peuvent y laisser un avis. Les avis doivent rester loyaux et respectueux.</p>
+        <p><strong>9. Responsabilité.</strong> Ae-book agit en tant qu'intermédiaire technique et n'est pas éditeur des contenus vendus par les vendeurs tiers.</p>
 
-        <p><strong>10. Donnees personnelles.</strong></p>
-        <p><em>Responsable du traitement.</em> Ae-book est responsable du traitement des donnees personnelles collectees dans le cadre du service. [A completer : raison sociale, SIRET et adresse une fois l'immatriculation effectuee.]</p>
-        <p><em>Donnees collectees.</em> Email et mot de passe (mot de passe jamais stocke en clair) ; nom affiche et, le cas echeant, nom de plume ; historique des achats et des livres publies ; avis laisses ; signalements effectues. Aucune donnee bancaire n'est collectee ni stockee par Ae-book : les paiements sont geres directement par Stripe.</p>
-        <p><em>Finalites et bases legales.</em> Gestion du compte et des commandes (execution du contrat) ; traitement des paiements et versement aux vendeurs (execution du contrat) ; verification technique et antivirus des fichiers publies, prevention de la fraude (interet legitime) ; envoi des emails transactionnels lies a un achat, une vente ou une publication (execution du contrat) ; respect des obligations comptables et fiscales (obligation legale).</p>
-        <p><em>Destinataires des donnees.</em> Les donnees sont partagees uniquement avec les prestataires necessaires au fonctionnement du service, agissant comme sous-traitants : Supabase (hebergement de la base de donnees et des fichiers), Stripe (traitement des paiements), Brevo (envoi des emails transactionnels), VirusTotal (scan antivirus des fichiers publies, qui recoit uniquement le fichier soumis, pas les donnees de compte). Ae-book ne vend ni ne loue aucune donnee a des tiers a des fins commerciales.</p>
-        <p><em>Transferts hors Union europeenne.</em> Certains prestataires peuvent traiter des donnees en dehors de l'UE ; le cas echeant, ces transferts s'appuient sur les garanties prevues par le RGPD (clauses contractuelles types ou equivalent).</p>
-        <p><em>Duree de conservation.</em> Les donnees du compte sont conservees tant que le compte existe. Les donnees de facturation sont conservees pendant la duree exigee par la reglementation comptable et fiscale en vigueur (en France, 10 ans pour les documents comptables). Un compte supprime entraine la suppression des donnees personnelles non soumises a une obligation de conservation legale.</p>
-        <p><em>Droits des utilisateurs.</em> Conformement au RGPD, chaque utilisateur dispose d'un droit d'acces, de rectification, d'effacement, de limitation, d'opposition et de portabilite sur ses donnees. Ces droits peuvent etre exerces en ecrivant a [adresse email de contact a completer]. En cas de reponse insatisfaisante, l'utilisateur peut saisir la CNIL (www.cnil.fr).</p>
-        <p><em>Cookies.</em> Le site utilise uniquement des cookies techniques necessaires a la connexion et au fonctionnement du compte, sans traceur publicitaire ni cookie de mesure d'audience tiers a ce stade.</p>
+        <p><strong>10. Données personnelles.</strong></p>
+        <p><em>Responsable du traitement.</em> Ae-book est responsable du traitement des données personnelles collectées dans le cadre du service. [À compléter : raison sociale, SIRET et adresse une fois l'immatriculation effectuée.]</p>
+        <p><em>Données collectées.</em> Email et mot de passe (mot de passe jamais stocké en clair) ; nom affiché et, le cas échéant, nom de plume ; historique des achats et des livres publiés ; avis laissés ; signalements effectués. Aucune donnée bancaire n'est collectée ni stockée par Ae-book : les paiements sont gérés directement par Stripe.</p>
+        <p><em>Finalités et bases légales.</em> Gestion du compte et des commandes (exécution du contrat) ; traitement des paiements et versement aux vendeurs (exécution du contrat) ; vérification technique et antivirus des fichiers publiés, prévention de la fraude (intérêt légitime) ; envoi des emails transactionnels liés à un achat, une vente ou une publication (exécution du contrat) ; respect des obligations comptables et fiscales (obligation légale).</p>
+        <p><em>Destinataires des données.</em> Les données sont partagées uniquement avec les prestataires nécessaires au fonctionnement du service, agissant comme sous-traitants : Supabase (hébergement de la base de données et des fichiers), Stripe (traitement des paiements), Brevo (envoi des emails transactionnels), VirusTotal (scan antivirus des fichiers publiés, qui reçoit uniquement le fichier soumis, pas les données de compte). Ae-book ne vend ni ne loue aucune donnée à des tiers à des fins commerciales.</p>
+        <p><em>Transferts hors Union européenne.</em> Certains prestataires peuvent traiter des données en dehors de l'UE ; le cas échéant, ces transferts s'appuient sur les garanties prévues par le RGPD (clauses contractuelles types ou équivalent).</p>
+        <p><em>Durée de conservation.</em> Les données du compte sont conservées tant que le compte existe. Les données de facturation sont conservées pendant la durée exigée par la réglementation comptable et fiscale en vigueur (en France, 10 ans pour les documents comptables). Un compte supprimé entraîne la suppression des données personnelles non soumises à une obligation de conservation légale.</p>
+        <p><em>Droits des utilisateurs.</em> Conformément au RGPD, chaque utilisateur dispose d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité sur ses données. Ces droits peuvent être exercés en écrivant à [adresse email de contact à compléter]. En cas de réponse insatisfaisante, l'utilisateur peut saisir la CNIL (www.cnil.fr).</p>
+        <p><em>Cookies.</em> Le site utilise uniquement des cookies techniques nécessaires à la connexion et au fonctionnement du compte, sans traceur publicitaire ni cookie de mesure d'audience tiers à ce stade.</p>
 
-        <p><strong>11. Droit applicable.</strong> Les presentes conditions sont soumises au droit francais.</p>
+        <p><strong>11. Droit applicable.</strong> Les présentes conditions sont soumises au droit français.</p>
 
-        <p class="text-xs text-ink-400 pt-3 border-t border-ink-100">Document redige par Claude a titre de base de depart ; a faire relire par un professionnel avant mise en ligne reelle, notamment pour completer les informations d'immatriculation et l'adresse de contact RGPD.</p>
+        <p class="text-xs text-ink-400 pt-3 border-t border-ink-100">Document rédigé par Claude à titre de base de départ ; à faire relire par un professionnel avant mise en ligne réelle, notamment pour compléter les informations d'immatriculation et l'adresse de contact RGPD.</p>
       </div>
     </div>
   </div>
@@ -248,15 +248,19 @@
 
   <!-- ============================= MARKETPLACE TAB ============================= -->
   <section id="tab-marketplace" class="tab">
+    <div id="featuredSection" class="hidden mb-10">
+      <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700 mb-3">Mis en avant</p>
+      <div id="featuredGrid" class="flex gap-4 overflow-x-auto pb-2"></div>
+    </div>
     <div class="flex items-end justify-between mb-8 flex-wrap gap-4">
       <div>
         <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Catalogue</p>
-        <h1 class="font-display text-3xl sm:text-4xl font-600 text-ink-800 mt-1">Des livres, ecrits par leurs auteurs.</h1>
+        <h1 class="font-display text-3xl sm:text-4xl font-600 text-ink-800 mt-1">Des livres, écrits par leurs auteurs.</h1>
         <p id="solidarityFundBadge" class="hidden text-sm text-ok mt-2"></p>
       </div>
       <div class="flex gap-3 flex-wrap relative">
         <select id="categoryFilter" onchange="resetPageAndRender()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gilt-500">
-          <option value="">Toutes les categories</option>
+          <option value="">Toutes les catégories</option>
         </select>
         <div class="relative">
           <button type="button" onclick="toggleLanguageFilterPanel()" id="languageFilterBtn" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm text-left w-40">Toutes les langues</button>
@@ -288,10 +292,47 @@
     <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Espace vendeur</p>
     <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Publie et vends ton livre.</h1>
 
+    <div id="sellerPublicInfo" class="hidden max-w-3xl">
+      <p class="text-ink-600 mb-8">Ae-book te permet de publier ton livre (PDF ou EPUB) et de le vendre directement aux lecteurs, sans intermédiaire éditorial. Voici comment ça fonctionne avant de te connecter.</p>
+
+      <div class="grid sm:grid-cols-2 gap-5 mb-8">
+        <div class="bg-paper-100 border border-ink-100 rounded-2xl p-5">
+          <p class="font-display font-600 text-ink-800 mb-1.5">Formats acceptés</p>
+          <p class="text-sm text-ink-600">PDF ou EPUB. Tu choisis aussi une couverture, une catégorie, une langue et un prix libre (minimum 1€, ou gratuit).</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-2xl p-5">
+          <p class="font-display font-600 text-ink-800 mb-1.5">Commission : 20%</p>
+          <p class="text-sm text-ink-600">Tu reçois 80% du prix de chaque vente sur ton compte Stripe Connect, verse selon le calendrier de virement standard de Stripe vers ta banque.</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-2xl p-5">
+          <p class="font-display font-600 text-ink-800 mb-1.5">Verification avant mise en vente</p>
+          <p class="text-sm text-ink-600">Chaque fichier passe par une vérification automatique (dont un scan antivirus) avant de passer en vente. Aucune relecture manuelle du contenu n'est requise pour publier.</p>
+        </div>
+        <div class="bg-paper-100 border border-ink-100 rounded-2xl p-5">
+          <p class="font-display font-600 text-ink-800 mb-1.5">Extrait gratuit et dons</p>
+          <p class="text-sm text-ink-600">Tu peux autoriser un extrait gratuit (quelques pages) avant achat, et offrir des exemplaires au pot commun "Livres suspendus" si tu le souhaites.</p>
+        </div>
+      </div>
+
+      <div class="bg-paper-100 border border-ink-100 rounded-2xl p-5 mb-8">
+        <p class="font-display font-600 text-ink-800 mb-1.5">Etapes de publication</p>
+        <ol class="text-sm text-ink-600 list-decimal list-inside space-y-1">
+          <li>Cree ton compte et connecte Stripe (pour recevoir tes paiements)</li>
+          <li>Renseigne le titre, la description, le prix et la catégorie de ton livre</li>
+          <li>Depose ton fichier PDF ou EPUB et une couverture</li>
+          <li>Ton livre est vérifié automatiquement, puis mis en vente</li>
+        </ol>
+        <p class="text-sm text-ink-600 mt-3">100 emplacements de publication sont offerts, puis 1€ le pack de 5 emplacements supplémentaires.</p>
+      </div>
+
+      <button onclick="showTab('auth')" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-6 py-3 rounded-lg transition">Se connecter pour publier mon livre</button>
+    </div>
+
+    <div id="sellerDashboard" class="hidden">
     <div id="stripeStatusBox" class="mb-6 rounded-2xl border border-ink-100 bg-paper-100 p-6 flex items-center justify-between flex-wrap gap-4">
       <div>
         <p class="font-medium text-ink-800" id="stripeStatusLabel">Verification du statut Stripe...</p>
-        <p class="text-sm text-ink-500" id="stripeStatusSubtext">Tu recois 80% du prix de vente sur ton compte Stripe. Ae-book garde 20% de commission.</p>
+        <p class="text-sm text-ink-500" id="stripeStatusSubtext">Tu reçois 80% du prix de vente sur ton compte Stripe. Ae-book garde 20% de commission.</p>
       </div>
       <button onclick="connectStripe()" id="stripeConnectBtn" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Connecter Stripe</button>
     </div>
@@ -299,7 +340,7 @@
     <div id="quotaBox" class="mb-8 rounded-2xl border border-ink-100 bg-paper-100 p-6 flex items-center justify-between flex-wrap gap-4">
       <div>
         <p class="font-medium text-ink-800" id="quotaLabel">Chargement...</p>
-        <p class="text-sm text-ink-500">100 livres gratuits, puis 1€ le pack de 5 emplacements supplementaires.</p>
+        <p class="text-sm text-ink-500">100 livres gratuits, puis 1€ le pack de 5 emplacements supplémentaires.</p>
       </div>
       <button onclick="buySlotPack()" id="buySlotsBtn" class="hidden bg-ink-700 hover:bg-ink-800 text-white font-medium px-5 py-2.5 rounded-lg transition">Acheter 5 emplacements (1€)</button>
     </div>
@@ -341,14 +382,19 @@
             </div>
           </div>
           <div>
-            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Nom de l'auteur (affiche publiquement)</label>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Nom de l'auteur (affiché publiquement)</label>
             <input id="bookAuthorName" placeholder="Laisse vide pour utiliser ton pseudo" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+          </div>
+          <div>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">ISBN (optionnel)</label>
+            <input id="bookIsbn" placeholder="ex. 978-2-1234-5680-3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+            <p class="text-xs text-ink-500 mt-1">Facultatif : uniquement si ton livre en possède déjà un. 10 ou 13 chiffres.</p>
           </div>
           <div>
             <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Couverture (image, optionnel)</label>
             <input type="file" accept="image/*" id="bookCover" onchange="onCoverFileChange('book')" class="mt-1 w-full text-sm" />
             <div id="bookCoverPreviewWrap" class="hidden mt-3">
-              <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaitra dans le catalogue :</p>
+              <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaîtra dans le catalogue :</p>
               <div class="spine aspect-[2/3] w-32 bg-ink-600 rounded-lg overflow-hidden">
                 <img id="bookCoverPreviewImg" class="w-full h-full object-cover" />
               </div>
@@ -372,14 +418,14 @@
           <div>
             <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Exemplaires suspendus offerts (optionnel)</label>
             <input type="number" min="0" max="20" value="0" id="bookDonatedCopies" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
-            <p class="text-xs text-ink-500 mt-1">0 = aucun. Ces exemplaires sont offerts gratuitement au pot commun "Livres suspendus" — tu ne recois rien dessus, c'est un don de ta part.</p>
+            <p class="text-xs text-ink-500 mt-1">0 = aucun. Ces exemplaires sont offerts gratuitement au pot commun "Livres suspendus" — tu ne reçois rien dessus, c'est un don de ta part.</p>
           </div>
           <div>
             <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Fichier du livre (PDF ou EPUB)</label>
             <input required type="file" accept=".pdf,.epub" id="bookFile" class="mt-1 w-full text-sm" />
-            <button type="button" onclick="previewSelectedBook()" class="mt-2 text-sm font-medium text-gilt-700 underline">Voir un apercu avant de publier</button>
+            <button type="button" onclick="previewSelectedBook()" class="mt-2 text-sm font-medium text-gilt-700 underline">Voir un aperçu avant de publier</button>
           </div>
-          <button type="submit" id="uploadBtn" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Publier (verification automatique)</button>
+          <button type="submit" id="uploadBtn" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Publier (vérification automatique)</button>
         </form>
         <p id="uploadMsg" class="text-sm mt-3"></p>
       </div>
@@ -389,12 +435,14 @@
         <div id="myBooksList" class="space-y-3"></div>
       </div>
     </div>
+    </div>
   </section>
+
 
   <!-- ============================= LIBRARY TAB ============================= -->
   <section id="tab-library" class="tab">
     <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Achats</p>
-    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Ma bibliotheque.</h1>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Ma bibliothèque.</h1>
     <div id="libraryList" class="space-y-3"></div>
     <p id="libraryEmpty" class="hidden text-ink-500 text-center py-16">Tu n'as encore achete aucun livre.</p>
   </section>
@@ -416,7 +464,7 @@
   <section id="tab-suspended" class="tab">
     <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Solidarite</p>
     <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-2">Livres suspendus.</h1>
-    <p class="text-ink-600 mb-6 max-w-2xl">Comme un cafe suspendu : quelqu'un a paye un exemplaire en plus pour l'offrir a un inconnu. Tu peux en reclamer un gratuitement, sans justificatif — sois juste raisonnable, la place est limitee pour que ca profite au plus grand nombre.</p>
+    <p class="text-ink-600 mb-6 max-w-2xl">Comme un café suspendu : quelqu'un a paye un exemplaire en plus pour l'offrir a un inconnu. Tu peux en réclamer un gratuitement, sans justificatif — sois juste raisonnable, la place est limitée pour que ca profite au plus grand nombre.</p>
     <div id="suspendedGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
     <p id="suspendedEmpty" class="hidden text-ink-500 text-center py-16">Aucun livre suspendu disponible pour le moment. Reviens plus tard, ou sois le premier a en offrir un !</p>
   </section>
@@ -517,7 +565,7 @@
 </div>
 
 <script>
-// Etat du lecteur (partage entre l'apercu vendeur et la lecture bibliotheque)
+// État du lecteur (partagé entre l'aperçu vendeur et la lecture bibliothèque)
 const readerState = { pdfDoc: null, pageNum: 1, numPages: 0, epubRendition: null, format: null, maxPages: null, epubTurns: 0, bookId: null, epubBook: null };
 let readerNightMode = false;
 
@@ -530,8 +578,8 @@ function spinnerMarkup(message) {
   `;
 }
 
-// Affiche tout de suite un etat de chargement (avant meme d'avoir l'URL du
-// fichier), pour eviter que l'ecran paraisse fige sur un gros livre.
+// Affiche tout de suite un état de chargement (avant même d'avoir l'URL du
+// fichier), pour éviter que l'écran paraisse figé sur un gros livre.
 function showReaderLoading(message) {
   document.getElementById("previewModal").classList.remove("hidden");
   document.getElementById("previewContainer").innerHTML = `
@@ -557,7 +605,7 @@ function readerModalMarkup() {
   `;
 }
 
-// title : affiche dans l'en-tete. bookId : si fourni, la position de lecture
+// title : affiché dans l'en-tête. bookId : si fourni, la position de lecture
 // est sauvegardee a la fermeture et reprise au prochain ouverture.
 // resumePosition : page (PDF) ou CFI epub.js (EPUB) a rouvrir directement.
 async function openReader(url, format, errorLabel, maxPages, title, bookId, resumePosition) {
@@ -694,11 +742,11 @@ function previewSelectedBook() {
   if (!file) { alert("Choisis d'abord un fichier PDF ou EPUB a apercevoir."); return; }
   const ext = file.name.split(".").pop().toLowerCase();
   const blobUrl = URL.createObjectURL(file);
-  openReader(blobUrl, ext === "pdf" || ext === "epub" ? ext : null, "Impossible d'afficher l'apercu", null, "Apercu avant publication");
+  openReader(blobUrl, ext === "pdf" || ext === "epub" ? ext : null, "Impossible d'afficher l'aperçu", null, "Aperçu avant publication");
 }
 
 // Sauvegarde la position de lecture (page PDF ou position EPUB), uniquement
-// pour une lecture d'un livre reellement possede (readerState.bookId defini).
+// pour une lecture d'un livre réellement possédé (readerState.bookId défini).
 async function saveReadingProgress() {
   if (!readerState.bookId || !currentUser) return;
   let position = null, percent = null;
@@ -726,7 +774,7 @@ async function saveReadingProgress() {
 }
 
 function closePreview() {
-  saveReadingProgress(); // avant de nettoyer l'etat, tant qu'on a encore les infos
+  saveReadingProgress(); // avant de nettoyer l'état, tant qu'on a encore les infos
   document.getElementById("previewModal").classList.add("hidden");
   document.getElementById("previewContainer").innerHTML = "";
   if (readerState.epubRendition) { readerState.epubRendition.destroy(); }
@@ -754,6 +802,10 @@ function closePreview() {
         <input id="editAuthorName" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
       </div>
       <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">ISBN (optionnel)</label>
+        <input id="editIsbn" placeholder="ex. 978-2-1234-5680-3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
+      </div>
+      <div>
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Description</label>
         <textarea id="editDescription" rows="3" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
       </div>
@@ -776,9 +828,9 @@ function closePreview() {
       <div>
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Couverture</label>
         <input type="file" accept="image/*" id="editCover" onchange="onCoverFileChange('edit')" class="mt-1 w-full text-sm" />
-        <p class="text-xs text-ink-500 mt-1">Choisis un fichier pour la remplacer, ou ajuste juste le cadrage de celle deja en ligne ci-dessous.</p>
+        <p class="text-xs text-ink-500 mt-1">Choisis un fichier pour la remplacer, ou ajuste juste le cadrage de celle déjà en ligne ci-dessous.</p>
         <div id="editCoverPreviewWrap" class="hidden mt-3">
-          <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaitra dans le catalogue :</p>
+          <p class="text-xs text-ink-500 mb-1">Apercu tel qu'il apparaîtra dans le catalogue :</p>
           <div class="spine aspect-[2/3] w-32 bg-ink-600 rounded-lg overflow-hidden">
             <img id="editCoverPreviewImg" class="w-full h-full object-cover" />
           </div>
@@ -802,12 +854,12 @@ function closePreview() {
       <div>
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Exemplaires suspendus offerts (optionnel)</label>
         <input type="number" min="0" max="20" id="editDonatedCopies" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
-        <p class="text-xs text-ink-500 mt-1">Augmenter ce nombre ajoute des exemplaires supplementaires au pot commun. Le diminuer ne retire pas ceux deja donnes.</p>
+        <p class="text-xs text-ink-500 mt-1">Augmenter ce nombre ajoute des exemplaires supplémentaires au pot commun. Le diminuer ne retire pas ceux déjà donnés.</p>
       </div>
       <div class="border-t border-ink-100 pt-4">
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Remplacer le contenu du livre (PDF/EPUB, optionnel)</label>
         <input type="file" accept=".pdf,.epub" id="editBookFile" class="mt-1 w-full text-sm" />
-        <p class="text-xs text-ink-500 mt-1">Remplacer le fichier relance automatiquement la verification technique et le scan antivirus. Le livre repasse temporairement en attente le temps du controle.</p>
+        <p class="text-xs text-ink-500 mt-1">Remplacer le fichier relance automatiquement la vérification technique et le scan antivirus. Le livre repasse temporairement en attente le temps du contrôle.</p>
       </div>
       <button type="submit" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Enregistrer</button>
       <p id="editMsg" class="text-sm text-err"></p>
@@ -886,7 +938,7 @@ document.getElementById("reviewForm").addEventListener("submit", async (e) => {
   const reviewerName = document.getElementById("reviewPseudo").value.trim();
   const msg = document.getElementById("reviewMsg");
 
-  if (!rating) { msg.textContent = "Choisis une note de 1 a 5 etoiles."; return; }
+  if (!rating) { msg.textContent = "Choisis une note de 1 a 5 étoiles."; return; }
 
   const { error } = await sb.from("reviews").upsert(
     { book_id: bookId, buyer_id: currentUser.id, rating, comment: comment || null, reviewer_name: reviewerName || null, updated_at: new Date().toISOString() },
@@ -913,13 +965,13 @@ document.getElementById("reviewForm").addEventListener("submit", async (e) => {
         <select required id="reportReason" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white">
           <option value="plagiat">Plagiat</option>
           <option value="contenu_inapproprie">Contenu inapproprie</option>
-          <option value="contrefacon">Contrefacon / droits d'auteur</option>
+          <option value="contrefacon">Contrefaçon / droits d'auteur</option>
           <option value="autre">Autre</option>
         </select>
       </div>
       <div>
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Details (optionnel)</label>
-        <textarea id="reportDetails" rows="4" placeholder="Explique le probleme le plus precisement possible..." class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+        <textarea id="reportDetails" rows="4" placeholder="Explique le problème le plus précisément possible..." class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
       </div>
       <button type="submit" id="reportSubmitBtn" class="w-full bg-err hover:opacity-90 text-white font-medium py-2.5 rounded-lg transition">Envoyer le signalement</button>
       <p id="reportMsg" class="text-sm"></p>
@@ -1095,11 +1147,11 @@ let allLiveBooks = [];
 let authMode = "login"; // or "signup"
 
 const STATUS_LABEL = {
-  pending:  { text: "En attente de verification", color: "#B8873A" },
-  scanning: { text: "Scan de securite en cours",   color: "#B8873A" },
-  rejected: { text: "Rejete",                        color: "#A23B2E" },
+  pending:  { text: "En attente de vérification", color: "#B8873A" },
+  scanning: { text: "Scan de sécurité en cours",   color: "#B8873A" },
+  rejected: { text: "Rejeté",                        color: "#A23B2E" },
   live:     { text: "En vente",                      color: "#4C7A5D" },
-  unlisted: { text: "Retire de la vente",            color: "#748BAF" },
+  unlisted: { text: "Retiré de la vente",            color: "#748BAF" },
 };
 
 function showTab(name) {
@@ -1131,16 +1183,16 @@ const CATEGORIES = {
   jeunesse: "Jeunesse",
   cuisine: "Cuisine",
   business: "Business & entrepreneuriat",
-  developpement_personnel: "Developpement personnel",
+  developpement_personnel: "Développement personnel",
   informatique: "Informatique & tech",
-  bien_etre_sante: "Bien-etre & sante",
+  bien_etre_sante: "Bien-être & santé",
   histoire: "Histoire",
-  poesie: "Poesie",
+  poesie: "Poésie",
   autre: "Autre",
 };
 
 const LANGUAGES = {
-  fr: "Francais",
+  fr: "Français",
   en: "Anglais",
   es: "Espagnol",
   de: "Allemand",
@@ -1150,7 +1202,15 @@ const LANGUAGES = {
 };
 
 // Appelle une Edge Function et remonte toujours un message d'erreur clair,
-// meme quand la fonction repond avec un statut HTTP non-2xx.
+// même quand la fonction répond avec un statut HTTP non-2xx.
+// Vérifie qu'un ISBN saisi est plausible (10 ou 13 chiffres, tirets/espaces
+// ignorés). Ne vérifie pas la clé de contrôle : simple garde-fou anti-faute
+// de frappe, l'ISBN reste facultatif et non vérifié auprès d'un registre officiel.
+function isValidIsbn(raw) {
+  const cleaned = raw.replace(/[-\s]/g, "").toUpperCase();
+  return /^\d{13}$/.test(cleaned) || /^\d{9}[\dX]$/.test(cleaned);
+}
+
 async function invokeEdge(name, body) {
   const { data, error } = await sb.functions.invoke(name, { body });
   if (error) {
@@ -1160,7 +1220,7 @@ async function invokeEdge(name, body) {
         const parsed = await error.context.json();
         if (parsed?.error) message = parsed.error;
       }
-    } catch (_) { /* pas de corps JSON exploitable, on garde le message par defaut */ }
+    } catch (_) { /* pas de corps JSON exploitable, on garde le message par défaut */ }
     return { data: null, error: message };
   }
   if (data?.error) return { data: null, error: data.error };
@@ -1172,10 +1232,10 @@ async function invokeEdge(name, body) {
 // ============================================================
 function toggleAuthMode() {
   authMode = authMode === "login" ? "signup" : "login";
-  document.getElementById("authTitle").textContent = authMode === "login" ? "Se connecter" : "Creer un compte";
+  document.getElementById("authTitle").textContent = authMode === "login" ? "Se connecter" : "Créer un compte";
   document.getElementById("authSubmitLabel").textContent = authMode === "login" ? "Se connecter" : "Creer mon compte";
   document.getElementById("authSwitchText").textContent = authMode === "login" ? "Pas encore de compte ?" : "Deja un compte ?";
-  document.getElementById("authSwitchBtn").textContent = authMode === "login" ? "Creer un compte" : "Se connecter";
+  document.getElementById("authSwitchBtn").textContent = authMode === "login" ? "Créer un compte" : "Se connecter";
   document.getElementById("cguRow").classList.toggle("hidden", authMode !== "signup");
   document.getElementById("forgotPasswordBtn").classList.toggle("hidden", authMode !== "login");
   document.getElementById("authInfo").classList.add("hidden");
@@ -1190,7 +1250,7 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
   document.getElementById("authInfo").classList.add("hidden");
 
   if (authMode === "signup" && !document.getElementById("authCgu").checked) {
-    errEl.textContent = "Tu dois accepter les Conditions Generales d'Utilisation pour creer un compte.";
+    errEl.textContent = "Tu dois accepter les Conditions Générales d'Utilisation pour créer un compte.";
     errEl.classList.remove("hidden");
     return;
   }
@@ -1227,7 +1287,7 @@ async function sendPasswordReset() {
     errEl.classList.remove("hidden");
     return;
   }
-  infoEl.textContent = "Email envoye ! Verifie ta boite mail (et les spams) pour reinitialiser ton mot de passe.";
+  infoEl.textContent = "Email envoye ! Verifie ta boîte mail (et les spams) pour réinitialiser ton mot de passe.";
   infoEl.classList.remove("hidden");
 }
 
@@ -1243,7 +1303,7 @@ document.getElementById("resetPasswordForm").addEventListener("submit", async (e
   }
   msg.className = "text-sm mt-3 text-ok";
   msg.textContent = "Mot de passe mis a jour !";
-  history.replaceState(null, "", window.location.pathname); // retire le hash de recuperation
+  history.replaceState(null, "", window.location.pathname); // retire le hash de récupération
   setTimeout(() => showTab("marketplace"), 1200);
 });
 
@@ -1300,16 +1360,51 @@ async function loadSolidarityFund() {
   const data = rows?.[0];
   const badge = document.getElementById("solidarityFundBadge");
   if (data && data.total_raised_cents > 0) {
-    badge.textContent = `🎁 ${money(data.total_raised_cents)} collectes pour l'acces a la lecture grace a ${data.donor_count} lecteur${data.donor_count > 1 ? "s" : ""} solidaire${data.donor_count > 1 ? "s" : ""}`;
+    badge.textContent = `🎁 ${money(data.total_raised_cents)} collectés pour l'accès à la lecture grâce à ${data.donor_count} lecteur${data.donor_count > 1 ? "s" : ""} solidaire${data.donor_count > 1 ? "s" : ""}`;
     badge.classList.remove("hidden");
   }
   solidarityFundLoaded = true;
 }
 
+// Livres "mis en avant", choisis depuis le panneau admin. Independant des
+// filtres/recherche/pagination du catalogue, donc charge une seule fois.
+let featuredLoaded = false;
+async function loadFeaturedBooks() {
+  if (featuredLoaded) return;
+  const { data, error } = await sb
+    .from("books")
+    .select("id, title, price_cents, currency, cover_path, cover_position, category, author_name, language, free_preview_pages")
+    .eq("status", "live")
+    .eq("featured", true)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  const section = document.getElementById("featuredSection");
+  const grid = document.getElementById("featuredGrid");
+  if (error || !data || data.length === 0) {
+    section.classList.add("hidden");
+    featuredLoaded = true;
+    return;
+  }
+  section.classList.remove("hidden");
+  grid.innerHTML = data.map(b => `
+    <button onclick="openBook('${b.id}')" class="book-card text-left bg-paper-100 border border-ink-100 rounded-xl overflow-hidden w-36 shrink-0">
+      <div class="spine aspect-[2/3] w-full bg-ink-600 flex items-center justify-center overflow-hidden">
+        ${coverImgOrFallback(b.cover_path, b.title, "text-2xl", b.cover_position)}
+      </div>
+      <div class="p-2">
+        <p class="font-medium text-xs text-ink-800 truncate">${b.title}</p>
+        <p class="text-xs text-ink-500 truncate">${b.author_name ?? ""}</p>
+        <p class="font-mono text-xs text-gilt-700 mt-0.5">${priceLabel(b.price_cents, b.currency.toUpperCase())}</p>
+      </div>
+    </button>
+  `).join("");
+  featuredLoaded = true;
+}
+
 function starsDisplay(bookId, small) {
   const stats = ratingsByBook[bookId];
   const size = small ? "text-xs" : "text-sm";
-  if (!stats) return `<span class="${size} text-ink-400">Pas encore note</span>`;
+  if (!stats) return `<span class="${size} text-ink-400">Pas encore noté</span>`;
   const rounded = Math.round(stats.avg_rating);
   return `<span class="${size} text-gilt-500">${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}</span> <span class="${size} text-ink-500">${stats.avg_rating} (${stats.review_count})</span>`;
 }
@@ -1349,7 +1444,7 @@ async function loadLiveBooks() {
   totalBooksCount = count ?? 0;
 }
 
-// Recherche/categorie/tri : on repart de la page 1 a chaque changement de filtre.
+// Recherche/catégorie/tri : on repart de la page 1 a chaque changement de filtre.
 function resetPageAndRender() {
   currentPage = 0;
   renderMarketplace();
@@ -1413,7 +1508,7 @@ function coverUrl(path) {
 
 // Si l'image de couverture ne charge pas (fichier absent, format non supporte
 // par le navigateur type HEIC, etc.), on bascule proprement sur le titre en texte
-// plutot que de laisser une icone d'image cassee.
+// plutôt que de laisser une icône d'image cassée.
 function coverImgOrFallback(coverPath, title, sizeClass, position) {
   const url = coverUrl(coverPath);
   if (!url) return `<span class="font-display text-paper-100 ${sizeClass} opacity-70 px-4 text-center">${title}</span>`;
@@ -1428,7 +1523,7 @@ function onCoverFileChange(prefix) {
   const wrap = document.getElementById(`${prefix}CoverPreviewWrap`);
   if (!file) {
     if (prefix === "book") { wrap.classList.add("hidden"); }
-    return; // en edition, on garde l'apercu de la couverture existante si aucun nouveau fichier
+    return; // en edition, on garde l'aperçu de la couverture existante si aucun nouveau fichier
   }
   const url = URL.createObjectURL(file);
   document.getElementById(`${prefix}CoverPreviewImg`).src = url;
@@ -1464,10 +1559,10 @@ function toggleFreeBook(prefix) {
 
 async function renderMarketplace() {
   populateCategoryFilter();
-  await Promise.all([loadLiveBooks(), loadRatings(), loadSolidarityFund()]);
+  await Promise.all([loadLiveBooks(), loadRatings(), loadSolidarityFund(), loadFeaturedBooks()]);
   const minRating = parseInt(document.getElementById("ratingFilter").value || "0");
-  // Note : le filtre par etoiles s'applique sur la page couramment chargee
-  // (recherche/categorie sont filtrees cote serveur, la note cote client).
+  // Note : le filtre par étoiles s'applique sur la page couramment chargée
+  // (recherche/catégorie sont filtrées cote serveur, la note cote client).
   const filtered = allLiveBooks.filter(b =>
     !minRating || Math.round(ratingsByBook[b.id]?.avg_rating ?? 0) >= minRating
   );
@@ -1489,7 +1584,7 @@ async function renderMarketplace() {
         ${coverImgOrFallback(b.cover_path, b.title, "text-3xl", b.cover_position)}
       </div>
       <div class="p-3">
-        <p class="text-xs font-mono uppercase tracking-widest text-gilt-700">${CATEGORIES[b.category] ?? "Autre"} &middot; ${LANGUAGES[b.language] ?? "Francais"}</p>
+        <p class="text-xs font-mono uppercase tracking-widest text-gilt-700">${CATEGORIES[b.category] ?? "Autre"} &middot; ${LANGUAGES[b.language] ?? "Français"}</p>
         <p class="font-medium text-sm text-ink-800 truncate mt-0.5">${b.title}</p>
         <p class="text-xs text-ink-500 truncate">${b.author_name ?? ""}</p>
         <p class="mt-1">${starsDisplay(b.id, true)}</p>
@@ -1519,7 +1614,7 @@ async function openBook(bookId) {
     .single();
   if (error || !book) return;
 
-  // Requete separee pour le pseudo du vendeur (fallback si author_name est vide) :
+  // Requête séparée pour le pseudo du vendeur (fallback si author_name est vide) :
   // plus fiable qu'une jointure sur nom de contrainte FK.
   let sellerDisplayName = null;
   if (!book.author_name) {
@@ -1527,7 +1622,7 @@ async function openBook(bookId) {
     sellerDisplayName = sellerProfile?.display_name ?? null;
   }
 
-  // Deja achete ? On evite de proposer un rachat inutile.
+  // Déjà acheté ? On évite de proposer un rachat inutile.
   let alreadyOwned = false;
   if (currentUser) {
     const { data: existing } = await sb
@@ -1540,7 +1635,7 @@ async function openBook(bookId) {
     alreadyOwned = !!(existing && existing.length > 0);
   }
 
-  // Avis : chargement + noms des acheteurs (requete separee, plus fiable
+  // Avis : chargement + noms des acheteurs (requête separee, plus fiable
   // qu'une jointure sur nom de contrainte FK).
   const { data: reviews } = await sb
     .from("reviews")
@@ -1571,7 +1666,7 @@ async function openBook(bookId) {
          <button onclick="readBook('${book.id}')" class="flex-1 bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
          <button onclick="downloadBook('${book.id}', this)" class="flex-1 bg-paper-200 hover:bg-paper-300 text-ink-800 font-medium py-3 rounded-lg transition border border-ink-100">Telecharger</button>
        </div>
-       <p class="text-xs text-ink-500 mt-2 text-center">Deja dans ta bibliotheque</p>`
+       <p class="text-xs text-ink-500 mt-2 text-center">Deja dans ta bibliothèque</p>`
     : book.price_cents === 0
     ? `<button onclick="claimFreeBook('${book.id}')" class="mt-4 w-full bg-ok hover:opacity-90 text-white font-medium py-3 rounded-lg transition">Obtenir gratuitement</button>
        <p id="buyMsg" class="text-sm mt-3 text-err"></p>`
@@ -1585,7 +1680,7 @@ async function openBook(bookId) {
            const remainder = 100 - (book.price_cents % 100);
            const donation = remainder === 100 ? 100 : remainder;
            const roundedTotal = book.price_cents + donation;
-           return `Arrondir a ${money(roundedTotal, book.currency.toUpperCase())} pour soutenir l'acces a la lecture (+${money(donation, book.currency.toUpperCase())})`;
+           return `Arrondir a ${money(roundedTotal, book.currency.toUpperCase())} pour soutenir l'accès a la lecture (+${money(donation, book.currency.toUpperCase())})`;
          })()}
        </label>
        <label class="flex items-center gap-2 mt-2 text-sm text-ink-600 cursor-pointer">
@@ -1600,11 +1695,19 @@ async function openBook(bookId) {
         ${coverImgOrFallback(book.cover_path, book.title, "text-2xl", book.cover_position)}
       </div>
       <div class="min-w-0">
-        <p class="text-xs font-mono uppercase tracking-widest text-gilt-700">${CATEGORIES[book.category] ?? "Autre"} &middot; ${LANGUAGES[book.language] ?? "Francais"}</p>
+        <p class="text-xs font-mono uppercase tracking-widest text-gilt-700">${CATEGORIES[book.category] ?? "Autre"} &middot; ${LANGUAGES[book.language] ?? "Français"}</p>
+        ${book.isbn ? `<p class="text-xs text-ink-400 mt-1">ISBN : ${book.isbn}</p>` : ""}
         <h2 class="font-display text-2xl font-600 text-ink-800 mt-1 break-words">${book.title}</h2>
-        <p class="text-sm text-ink-500 mt-1">Par ${book.author_name || sellerDisplayName || "un auteur independant"}</p>
+        <p class="text-sm text-ink-500 mt-1">Par ${book.author_name || sellerDisplayName || "un auteur indépendant"}</p>
         <p class="text-ink-600 mt-3 whitespace-pre-line break-words">${book.description ?? ""}</p>
         <p class="font-mono text-2xl text-gilt-700 mt-6">${priceLabel(book.price_cents, book.currency.toUpperCase())}</p>
+        <div class="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs text-ink-500">
+          <span>🔒 Paiement securise</span>
+          <span>📖 Lecture en ligne incluse</span>
+          <span>⬇️ Telechargement ${(book.file_format || "pdf").toUpperCase()} immediat</span>
+          ${book.free_preview_pages > 0 ? `<span>👀 Extrait gratuit (${book.free_preview_pages} pages)</span>` : ""}
+          <span>💬 Support par message</span>
+        </div>
         ${actionButton}
         <div class="flex gap-4 mt-3">
           <button onclick="copyBookLink('${book.id}', this)" class="text-xs text-ink-500 underline">Copier le lien de ce livre</button>
@@ -1648,7 +1751,7 @@ async function claimFreeBook(bookId) {
     else alert(error);
     return;
   }
-  openBook(bookId); // rafraichit la fiche pour afficher "Lire en ligne"
+  openBook(bookId); // rafraîchit la fiche pour afficher "Lire en ligne"
 }
 
 // ============================================================
@@ -1676,7 +1779,15 @@ function populateBookCategorySelect() {
 }
 
 async function loadSellerData() {
-  if (!currentUser) { showTab("auth"); return; }
+  const publicInfo = document.getElementById("sellerPublicInfo");
+  const dashboard = document.getElementById("sellerDashboard");
+  if (!currentUser) {
+    publicInfo.classList.remove("hidden");
+    dashboard.classList.add("hidden");
+    return;
+  }
+  publicInfo.classList.add("hidden");
+  dashboard.classList.remove("hidden");
   populateBookCategorySelect();
   const { data: profile } = await sb.from("profiles").select("*").eq("id", currentUser.id).single();
   currentProfile = profile;
@@ -1689,8 +1800,8 @@ async function loadSellerData() {
 
   if (stripeReady) {
     box.textContent = "Compte Stripe actif.";
-    subtext.textContent = "Tu recois 80% du prix de vente automatiquement. Ae-book garde 20% de commission.";
-    btn.textContent = "Modifier mes coordonnees bancaires";
+    subtext.textContent = "Tu reçois 80% du prix de vente automatiquement. Ae-book garde 20% de commission.";
+    btn.textContent = "Modifier mes coordonnées bancaires";
     // Boite plus discrete : ce n'est plus une action requise, juste une info + un lien secondaire.
     statusBox.className = "mb-6 rounded-2xl border border-ink-100 bg-transparent p-4 flex items-center justify-between flex-wrap gap-4";
     btn.className = "text-sm font-medium text-ink-600 underline";
@@ -1709,8 +1820,8 @@ async function loadSellerData() {
   }
 
   // Impossible de publier tant que le compte Stripe n'est pas pret (sinon
-  // personne ne pourrait acheter le livre) : le formulaire est masque et
-  // remplace par une invite a connecter Stripe.
+  // personne ne pourrait acheter le livre) : le formulaire est masqué et
+  // remplacé par une invite à connecter Stripe.
   document.getElementById("uploadForm").classList.toggle("hidden", !stripeReady);
   document.getElementById("uploadLockedMsg").classList.toggle("hidden", stripeReady);
 
@@ -1726,7 +1837,7 @@ async function loadSellerData() {
   const quotaLabel = document.getElementById("quotaLabel");
   const buySlotsBtn = document.getElementById("buySlotsBtn");
   const uploadBtn = document.getElementById("uploadBtn");
-  quotaLabel.textContent = `${usedSlots} / ${allowedSlots} livres publies`;
+  quotaLabel.textContent = `${usedSlots} / ${allowedSlots} livres publiés`;
   if (usedSlots >= allowedSlots) {
     quotaLabel.className = "font-medium text-err";
     buySlotsBtn.classList.remove("hidden");
@@ -1738,11 +1849,11 @@ async function loadSellerData() {
     buySlotsBtn.classList.toggle("hidden", usedSlots < allowedSlots - 2); // propose l'achat un peu avant la limite
     uploadBtn.disabled = false;
     uploadBtn.classList.remove("opacity-50", "cursor-not-allowed");
-    uploadBtn.textContent = "Publier (verification automatique)";
+    uploadBtn.textContent = "Publier (vérification automatique)";
   }
 
-  // Stats de vente : nombre d'achats et revenu par livre (RLS autorise deja
-  // le vendeur a lire les purchases ou seller_id = lui-meme)
+  // Stats de vente : nombre d'achats et revenu par livre (RLS autorise déjà
+  // le vendeur a lire les purchases ou seller_id = lui-même)
   const { data: sales } = await sb
     .from("purchases")
     .select("book_id, seller_amount_cents")
@@ -1776,7 +1887,7 @@ async function loadSellerData() {
           <p class="text-xs font-mono text-ok mt-1">${stats.count} vente${stats.count === 1 ? "" : "s"} &middot; ${money(stats.revenueCents)} encaisses</p>
           ${b.verification_notes ? `<p class="text-xs text-err mt-1 break-words">${b.verification_notes}</p>` : ""}
           <div class="flex gap-3 mt-1">
-            ${canRetry ? `<button onclick="retryVerification('${b.id}', this)" class="text-xs font-medium text-gilt-700 underline">Relancer la verification</button>` : ""}
+            ${canRetry ? `<button onclick="retryVerification('${b.id}', this)" class="text-xs font-medium text-gilt-700 underline">Relancer la vérification</button>` : ""}
             <button onclick='openEditBook(${JSON.stringify(b).replace(/'/g, "&apos;")})' class="text-xs font-medium text-ink-600 underline">Modifier</button>
             <button onclick="copyBookLink('${b.id}', this)" class="text-xs font-medium text-ink-600 underline">Copier le lien</button>
             ${canToggleListing ? `<button onclick="toggleListing('${b.id}', '${b.status}')" class="text-xs font-medium text-err underline">${b.status === "live" ? "Retirer de la vente" : "Remettre en vente"}</button>` : ""}
@@ -1802,6 +1913,7 @@ function openEditBook(book) {
   document.getElementById("editOldChunkPaths").value = JSON.stringify(book.file_chunk_paths || []);
   document.getElementById("editTitle").value = book.title;
   document.getElementById("editAuthorName").value = book.author_name || "";
+  document.getElementById("editIsbn").value = book.isbn || "";
   document.getElementById("editDescription").value = book.description || "";
   document.getElementById("editPrice").value = (book.price_cents / 100).toFixed(2);
   document.getElementById("editFreeCheckbox").checked = book.price_cents === 0;
@@ -1812,7 +1924,7 @@ function openEditBook(book) {
   document.getElementById("editDonatedCopies").value = book.donated_suspended_copies || 0;
   document.getElementById("editCover").value = "";
 
-  // Pre-remplit l'apercu avec la couverture existante (si il y en a une),
+  // Pre-remplit l'aperçu avec la couverture existante (si il y en a une),
   // pour permettre de juste ajuster le cadrage sans re-uploader.
   const wrap = document.getElementById("editCoverPreviewWrap");
   if (book.cover_path) {
@@ -1849,7 +1961,7 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
     }
 
     // Remplacement du contenu du livre (optionnel) : nouveau fichier =
-    // nouvelle verification technique + antivirus obligatoire.
+    // nouvelle vérification technique + antivirus obligatoire.
     const newBookFile = document.getElementById("editBookFile").files[0];
     let newChunkPaths, newFileFormat;
     if (newBookFile) {
@@ -1862,6 +1974,11 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
     const updates = {
       title: document.getElementById("editTitle").value.trim(),
       author_name: document.getElementById("editAuthorName").value.trim(),
+      isbn: (() => {
+        const raw = document.getElementById("editIsbn").value.trim();
+        if (raw && !isValidIsbn(raw)) throw new Error("L'ISBN doit contenir 10 ou 13 chiffres (tirets autorisés).");
+        return raw ? raw.replace(/[-\s]/g, "").toUpperCase() : null;
+      })(),
       description: document.getElementById("editDescription").value.trim(),
       price_cents: Math.round(parseFloat(document.getElementById("editPrice").value) * 100),
       category: document.getElementById("editCategory").value,
@@ -1876,7 +1993,7 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
       updates.file_chunk_paths = newChunkPaths;
       updates.file_path = null;
       updates.file_format = newFileFormat;
-      updates.status = "pending";           // repasse en verification, invisible du catalogue entre-temps
+      updates.status = "pending";           // repasse en vérification, invisible du catalogue entre-temps
       updates.verification_notes = null;
       updates.scan_analysis_id = null;
     }
@@ -1885,14 +2002,14 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
     if (error) throw error;
 
     if (newChunkPaths) {
-      // Relance la verification sur le nouveau fichier
+      // Relance la vérification sur le nouveau fichier
       await invokeEdge("verify-book", { book_id: id });
-      // Nettoyage best-effort de l'ancien fichier / des anciens morceaux (echec silencieux si deja absent)
+      // Nettoyage best-effort de l'ancien fichier / des anciens morceaux (échec silencieux si déjà absent)
       const keysToDelete = oldChunkPaths.length > 0 ? oldChunkPaths : (oldFilePath ? [oldFilePath] : []);
       if (keysToDelete.length > 0) await invokeEdge("delete-r2-object", { type: "file", keys: keysToDelete });
     } else {
-      // Pas de re-verification declenchee : si le livre est deja en vente et
-      // que le nombre d'exemplaires offerts a augmente, on rattrape ici.
+      // Pas de re-vérification déclenchée : si le livre est déjà en vente et
+      // que le nombre d'exemplaires offerts a augmenté, on rattrape ici.
       await invokeEdge("top-up-donated-copies", { book_id: id });
     }
 
@@ -1903,12 +2020,12 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
   }
 });
 
-const retryLastAttempt = {}; // anti rafale : evite de marteler VirusTotal en cliquant plusieurs fois vite
+const retryLastAttempt = {}; // anti rafale : évite de marteler VirusTotal en cliquant plusieurs fois vite
 
 async function retryVerification(bookId, btn) {
   const now = Date.now();
   const last = retryLastAttempt[bookId] || 0;
-  const cooldownMs = 30000; // 30 secondes entre deux tentatives sur le meme livre
+  const cooldownMs = 30000; // 30 secondes entre deux tentatives sur le même livre
   if (now - last < cooldownMs) {
     alert(`Attends encore ${Math.ceil((cooldownMs - (now - last)) / 1000)} secondes avant de relancer, pour ne pas saturer le service antivirus.`);
     return;
@@ -1940,7 +2057,7 @@ async function buySlotPack() {
 
 // Decoupe un gros fichier en morceaux de 40 Mo (marge sous la limite de 50 Mo
 // par objet du plan gratuit) et les uploade dans l'ordre. Renvoie la liste
-// ordonnee des chemins, a stocker dans books.file_chunk_paths.
+// ordonnée des chemins, a stocker dans books.file_chunk_paths.
 const CHUNK_SIZE = 40 * 1024 * 1024;
 
 // Upload direct vers R2 (Cloudflare) : le navigateur envoie le fichier
@@ -2003,6 +2120,9 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     const category = document.getElementById("bookCategory").value;
     const language = document.getElementById("bookLanguage").value;
     const authorName = document.getElementById("bookAuthorName").value.trim() || null;
+    const isbnRaw = document.getElementById("bookIsbn").value.trim();
+    if (isbnRaw && !isValidIsbn(isbnRaw)) throw new Error("L'ISBN doit contenir 10 ou 13 chiffres (tirets autorisés).");
+    const isbn = isbnRaw ? isbnRaw.replace(/[-\s]/g, "").toUpperCase() : null;
     const freePreviewPages = parseInt(document.getElementById("bookFreePreviewPages").value || "0");
     const donatedCopies = parseInt(document.getElementById("bookDonatedCopies").value || "0");
 
@@ -2019,6 +2139,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       category,
       language,
       author_name: authorName,
+      isbn,
     }).select().single();
     if (insertErr) throw insertErr;
 
@@ -2028,7 +2149,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     msg.className = verifyData.status === "rejected" ? "text-sm mt-3 text-err" : "text-sm mt-3 text-ok";
     msg.textContent = verifyData.status === "rejected"
       ? `Rejete : ${verifyData.reason}`
-      : "Livre envoye ! Scan de securite en cours, il sera mis en vente automatiquement s'il est propre.";
+      : "Livre envoyé ! Scan de sécurité en cours, il sera mis en vente automatiquement s'il est propre.";
 
     document.getElementById("uploadForm").reset();
     document.getElementById("bookCoverPreviewWrap").classList.add("hidden");
@@ -2038,8 +2159,8 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     msg.textContent = err.message.replace(/^QUOTA_EXCEEDED:\s*/, "").replace(/^STRIPE_REQUIRED:\s*/, "");
   } finally {
     btn.disabled = false;
-    btn.textContent = "Publier (verification automatique)";
-    loadSellerData(); // remet le bouton dans le bon etat (notamment si le quota est atteint)
+    btn.textContent = "Publier (vérification automatique)";
+    loadSellerData(); // remet le bouton dans le bon état (notamment si le quota est atteint)
   }
 });
 
@@ -2052,7 +2173,7 @@ async function loadSuspendedBooks() {
   const empty = document.getElementById("suspendedEmpty");
   if (error) { grid.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
 
-  // Deduplique par livre (le pool peut avoir plusieurs exemplaires du meme titre)
+  // Deduplique par livre (le pool peut avoir plusieurs exemplaires du même titre)
   const byBook = {};
   for (const p of pool ?? []) {
     if (!byBook[p.book_id]) byBook[p.book_id] = { ...p, count: 0 };
@@ -2093,7 +2214,7 @@ async function claimSuspendedBook(bookId, btn) {
     btn.textContent = "Recevoir ce livre";
     return;
   }
-  alert("Le livre est maintenant dans ta bibliotheque !");
+  alert("Le livre est maintenant dans ta bibliothèque !");
   loadSuspendedBooks();
 }
 
@@ -2167,21 +2288,21 @@ async function loadLibrary() {
 }
 
 // Recupere plusieurs URLs signees (morceaux) et les reassemble en un seul
-// Blob dans l'ordre. Utilise pour le telechargement et la lecture des
+// Blob dans l'ordre. Utilisé pour le téléchargement et la lecture des
 // livres decoupes (>50 Mo).
 async function reassembleChunks(urls, onProgress) {
   const buffers = [];
   for (let i = 0; i < urls.length; i++) {
     if (onProgress) onProgress(i + 1, urls.length);
     const res = await fetch(urls[i]);
-    if (!res.ok) throw new Error("Impossible de recuperer un morceau du fichier.");
+    if (!res.ok) throw new Error("Impossible de récupérer un morceau du fichier.");
     buffers.push(await res.arrayBuffer());
   }
   return new Blob(buffers);
 }
 
 // Telechargement local du fichier achete : contrairement a "Lire en ligne"
-// (qui affiche le livre dans la visionneuse integree), ceci sauvegarde une
+// (qui affiche le livre dans la visionneuse intégrée), ceci sauvegarde une
 // copie du fichier sur l'appareil de l'utilisateur pour une lecture hors-ligne.
 async function downloadBook(bookId, btn) {
   const originalText = btn ? btn.textContent : null;
@@ -2207,14 +2328,14 @@ async function downloadBook(bookId, btn) {
     a.remove();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   } catch (err) {
-    alert(err.message || "Impossible de telecharger ce livre.");
+    alert(err.message || "Impossible de télécharger ce livre.");
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 }
 
 // Lien partageable direct vers la page d'un livre (utilise via ?book=<id>,
-// lu au demarrage dans init()). Permet a un auteur de partager son livre
+// lu au démarrage dans init()). Permet a un auteur de partager son livre
 // sans que l'acheteur ait a le chercher dans le catalogue.
 function bookShareUrl(bookId) {
   return `${window.location.origin}${window.location.pathname}?book=${bookId}`;
@@ -2234,8 +2355,8 @@ async function copyBookLink(bookId, btn) {
   }
 }
 
-// Lecture en ligne : reutilise la modale d'apercu, mais avec l'URL signee (ou
-// le blob reassemble pour un livre decoupe) du fichier deja achete.
+// Lecture en ligne : reutilise la modale d'aperçu, mais avec l'URL signee (ou
+// le blob reassemble pour un livre decoupe) du fichier déjà achete.
 async function readBook(bookId) {
   showReaderLoading("Chargement du livre...");
   const [{ data, error }, { data: progress }] = await Promise.all([
@@ -2255,8 +2376,8 @@ async function readBook(bookId) {
 }
 
 // Extrait gratuit : pas besoin d'avoir achete le livre, mais la lecture
-// est bloquee au-dela du nombre de pages autorise par le vendeur. Pas de
-// sauvegarde de progression ici (le livre n'est pas encore possede).
+// est bloquée au-delà du nombre de pages autorise par le vendeur. Pas de
+// sauvegarde de progression ici (le livre n'est pas encore possédé).
 async function previewFreeExcerpt(bookId) {
   showReaderLoading("Chargement de l'extrait...");
   const { data, error } = await invokeEdge("get-preview-url", { book_id: bookId });
@@ -2277,7 +2398,7 @@ async function previewFreeExcerpt(bookId) {
 async function loadMyMessages() {
   if (!currentUser) { showTab("auth"); return; }
   // Recus : messages qui me sont adresses directement (pas les messages a l'admin,
-  // sauf si je suis moi-meme admin - dans ce cas ils apparaissent dans le panneau admin).
+  // sauf si je suis moi-même admin - dans ce cas ils apparaissent dans le panneau admin).
   const { data: messages, error } = await sb
     .from("messages")
     .select("id, subject, body, read, created_at, sender_id, book_id")
@@ -2366,7 +2487,7 @@ function showAdminSection(section) {
   clearInterval(onlineNowInterval);
   if (section === "dashboard") {
     loadAdminDashboard();
-    onlineNowInterval = setInterval(refreshOnlineNow, 20000); // rafraichit juste le compteur, pas tout le tableau de bord
+    onlineNowInterval = setInterval(refreshOnlineNow, 20000); // rafraîchit juste le compteur, pas tout le tableau de bord
   }
   if (section === "books") loadAdminBooks();
   if (section === "reports") loadAdminReports();
@@ -2414,7 +2535,7 @@ async function loadAdminDashboard() {
   const avgRating = ratings.length > 0 ? (ratings.reduce((s, r) => s + Number(r.avg_rating), 0) / ratings.length) : null;
   document.getElementById("statAvgRating").textContent = avgRating ? `${avgRating.toFixed(1)} / 5` : "—";
 
-  // Revenus des 30 derniers jours, regroupes par jour
+  // Revenus des 30 derniers jours, regroupés par jour
   const days = [];
   const revenueByDay = {};
   for (let i = 29; i >= 0; i--) {
@@ -2457,7 +2578,7 @@ async function loadAdminBooks() {
   await loadFundBanner();
   const { data: books, error } = await sb
     .from("books")
-    .select("id, title, status, author_name, verification_notes, seller_id, price_cents, currency")
+    .select("id, title, status, author_name, verification_notes, seller_id, price_cents, currency, featured")
     .order("created_at", { ascending: false })
     .limit(200);
   const list = document.getElementById("adminBooksList");
@@ -2479,6 +2600,7 @@ async function loadAdminBooks() {
         </div>
         <div class="flex gap-3 shrink-0 flex-wrap justify-end">
           <button onclick="readBook('${b.id}')" class="text-sm font-medium text-gilt-700 underline">Lire</button>
+          ${b.status === "live" ? `<button onclick="adminToggleFeatured('${b.id}', ${b.featured})" class="text-sm font-medium ${b.featured ? "text-err" : "text-ok"} underline">${b.featured ? "Retirer de la mise en avant" : "Mettre en avant"}</button>` : ""}
           ${b.status === "live" ? `<button onclick="fundSuspendedBook('${b.id}', this)" class="text-sm font-medium text-ok underline">Financer un exemplaire (${money(fundCost, b.currency.toUpperCase())})</button>` : ""}
           ${canUnlist ? `<button onclick="adminUnlistBook('${b.id}')" class="text-sm font-medium text-err underline">Retirer de la vente</button>` : ""}
         </div>
@@ -2494,14 +2616,14 @@ async function loadFundBanner() {
   if (!data) { banner.textContent = ""; return; }
   banner.innerHTML = `
     <span class="font-medium text-ink-800">Fonds solidaire :</span>
-    ${money(data.total_raised_cents)} collectes &middot;
-    ${money(data.total_spent_cents)} deja depenses &middot;
+    ${money(data.total_raised_cents)} collectés &middot;
+    ${money(data.total_spent_cents)} déjà depenses &middot;
     <span class="font-mono text-ok">${money(data.available_cents)} disponibles</span>
   `;
 }
 
 async function fundSuspendedBook(bookId, btn) {
-  if (!confirm("Utiliser le fonds solidaire pour financer un exemplaire suspendu de ce livre ? Le vendeur sera paye immediatement.")) return;
+  if (!confirm("Utiliser le fonds solidaire pour financer un exemplaire suspendu de ce livre ? Le vendeur sera payé immédiatement.")) return;
   btn.disabled = true;
   btn.textContent = "...";
   const { error } = await invokeEdge("fund-suspended-book", { book_id: bookId });
@@ -2511,7 +2633,7 @@ async function fundSuspendedBook(bookId, btn) {
     btn.textContent = "Financer un exemplaire";
     return;
   }
-  alert("Exemplaire suspendu finance ! Il est desormais disponible dans la section Livres suspendus.");
+  alert("Exemplaire suspendu financé ! Il est désormais disponible dans la section Livres suspendus.");
   loadAdminBooks();
 }
 
@@ -2521,10 +2643,16 @@ async function adminUnlistBook(bookId) {
   loadAdminBooks();
 }
 
+async function adminToggleFeatured(bookId, currentlyFeatured) {
+  const { error } = await sb.from("books").update({ featured: !currentlyFeatured, updated_at: new Date().toISOString() }).eq("id", bookId);
+  if (error) { alert(error.message); return; }
+  loadAdminBooks();
+}
+
 const REPORT_REASON_LABELS = {
   plagiat: "Plagiat",
-  contenu_inapproprie: "Contenu inapproprie",
-  contrefacon: "Contrefacon / droits d'auteur",
+  contenu_inapproprie: "Contenu inapproprié",
+  contrefacon: "Contrefaçon / droits d'auteur",
   autre: "Autre",
 };
 
@@ -2562,7 +2690,7 @@ async function loadAdminReports() {
               <span class="status-dot" style="background:${s.color}"></span> ${s.text} &middot; ${REPORT_REASON_LABELS[r.reason] ?? r.reason}
             </p>
             ${r.details ? `<p class="text-sm text-ink-600 mt-1 break-words">${r.details}</p>` : ""}
-            <p class="text-xs text-ink-400 mt-1">Signale par ${reporterEmails[r.reporter_id] ?? "inconnu"} &middot; ${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
+            <p class="text-xs text-ink-400 mt-1">Signalé par ${reporterEmails[r.reporter_id] ?? "inconnu"} &middot; ${new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
           </div>
         </div>
         <div class="flex gap-3 mt-3">
@@ -2679,7 +2807,7 @@ async function loadAdminErrors() {
     .limit(100);
   const list = document.getElementById("adminErrorsList");
   if (error) { list.innerHTML = `<p class="text-err text-sm">${error.message}</p>`; return; }
-  if (!errors || errors.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucune erreur enregistree.</p>`; return; }
+  if (!errors || errors.length === 0) { list.innerHTML = `<p class="text-ink-500 text-sm">Aucune erreur enregistrée.</p>`; return; }
 
   list.innerHTML = errors.map(e => `
     <div class="bg-paper-100 border border-ink-100 rounded-lg p-3 text-sm">
@@ -2692,8 +2820,8 @@ async function loadAdminErrors() {
   `).join("");
 }
 
-// Capture globale des erreurs JS cote client, enregistrees pour consultation
-// dans le panneau admin (mieux que rien tant qu'il n'y a pas d'outil dedie).
+// Capture globale des erreurs JS cote client, enregistrées pour consultation
+// dans le panneau admin (mieux que rien tant qu'il n'y a pas d'outil dédié).
 window.addEventListener("error", (e) => {
   sb.from("error_logs").insert({
     source: "frontend",
@@ -2754,7 +2882,7 @@ async function sendPresenceHeartbeat() {
   if (isRecovery) {
     showTab("resetPassword"); // ne pas rediriger vers le catalogue : l'utilisateur doit d'abord choisir un nouveau mot de passe
   } else if (sharedBookId) {
-    // Lien partage vers un livre precis (?book=<id>) : on ouvre directement
+    // Lien partage vers un livre précis (?book=<id>) : on ouvre directement
     // sa fiche. Si le livre n'existe pas/plus, openBook() ne fait rien et on
     // retombe sur le catalogue.
     await openBook(sharedBookId);
