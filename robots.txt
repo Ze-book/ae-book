@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://ze-book.github.io/ae-book/sitemap.xml
+Sitemap: https://REMPLACE-PAR-TON-REF-PROJET.supabase.co/functions/v1/sitemap

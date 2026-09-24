@@ -139,7 +139,7 @@
       <button onclick="showTab('seller')" class="hover:text-ink-900">Vendre un livre</button>
       <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliothèque</button>
       <button onclick="showTab('messages')" class="hover:text-ink-900 relative">Messagerie<span id="unreadBadge" class="hidden absolute -top-2 -right-3 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
-      <button onclick="showTab('suspended')" class="hover:text-ink-900">Livres suspendus</button>
+      <button onclick="showTab('suspended')" class="hover:text-ink-900">Livres gratuits</button>
       <button onclick="showTab('admin')" id="adminNavBtn" class="hidden hover:text-ink-900 text-err">Admin</button>
     </nav>
     <div id="authArea" class="flex items-center gap-3"></div>
@@ -149,7 +149,7 @@
     <button onclick="showTab('seller')" class="shrink-0 px-2 py-1">Vendre</button>
     <button onclick="showTab('library')" class="shrink-0 px-2 py-1">Bibliotheque</button>
     <button onclick="showTab('messages')" class="shrink-0 px-2 py-1 relative">Messages<span id="unreadBadgeMobile" class="hidden absolute -top-0.5 -right-0.5 bg-err text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center"></span></button>
-    <button onclick="showTab('suspended')" class="shrink-0 px-2 py-1">Suspendus</button>
+    <button onclick="showTab('suspended')" class="shrink-0 px-2 py-1">Gratuits</button>
     <button onclick="showTab('admin')" id="adminNavBtnMobile" class="hidden shrink-0 px-2 py-1 text-err">Admin</button>
   </nav>
 </header>
@@ -310,7 +310,7 @@
         </div>
         <div class="bg-paper-100 border border-ink-100 rounded-2xl p-5">
           <p class="font-display font-600 text-ink-800 mb-1.5">Extrait gratuit et dons</p>
-          <p class="text-sm text-ink-600">Tu peux autoriser un extrait gratuit (quelques pages) avant achat, et offrir des exemplaires au pot commun "Livres suspendus" si tu le souhaites.</p>
+          <p class="text-sm text-ink-600">Tu peux autoriser un extrait gratuit (quelques pages) avant achat, et offrir des exemplaires au pot commun "Livres gratuits" si tu le souhaites.</p>
         </div>
       </div>
 
@@ -416,9 +416,9 @@
             <p class="text-xs text-ink-500 mt-1">0 = pas d'extrait. Les visiteurs pourront lire ce nombre de pages avant d'acheter.</p>
           </div>
           <div>
-            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Exemplaires suspendus offerts (optionnel)</label>
+            <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Exemplaires gratuits offerts (optionnel)</label>
             <input type="number" min="0" max="20" value="0" id="bookDonatedCopies" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
-            <p class="text-xs text-ink-500 mt-1">0 = aucun. Ces exemplaires sont offerts gratuitement au pot commun "Livres suspendus" — tu ne reçois rien dessus, c'est un don de ta part.</p>
+            <p class="text-xs text-ink-500 mt-1">0 = aucun. Ces exemplaires sont offerts gratuitement au pot commun "Livres gratuits" — tu ne reçois rien dessus, c'est un don de ta part.</p>
           </div>
           <div>
             <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Fichier du livre (PDF ou EPUB)</label>
@@ -460,13 +460,13 @@
     <p id="messagesEmpty" class="hidden text-ink-500 text-center py-16">Aucun message pour le moment.</p>
   </section>
 
-  <!-- ============================= LIVRES SUSPENDUS TAB ============================= -->
+  <!-- ============================= LIVRES GRATUITS TAB ============================= -->
   <section id="tab-suspended" class="tab">
-    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Solidarite</p>
-    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-2">Livres suspendus.</h1>
-    <p class="text-ink-600 mb-6 max-w-2xl">Comme un café suspendu : quelqu'un a paye un exemplaire en plus pour l'offrir a un inconnu. Tu peux en réclamer un gratuitement, sans justificatif — sois juste raisonnable, la place est limitée pour que ca profite au plus grand nombre.</p>
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Solidarité</p>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-2">Livres gratuits.</h1>
+    <p class="text-ink-600 mb-6 max-w-2xl">Des auteurs ou des lecteurs offrent parfois un exemplaire en plus pour qu'il soit accessible gratuitement à quelqu'un d'autre. Tu peux en réclamer un gratuitement, sans justificatif — sois juste raisonnable, la place est limitée pour que ça profite au plus grand nombre.</p>
     <div id="suspendedGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
-    <p id="suspendedEmpty" class="hidden text-ink-500 text-center py-16">Aucun livre suspendu disponible pour le moment. Reviens plus tard, ou sois le premier a en offrir un !</p>
+    <p id="suspendedEmpty" class="hidden text-ink-500 text-center py-16">Aucun livre gratuit disponible pour le moment. Reviens plus tard, ou sois le premier à en offrir un !</p>
   </section>
 
   <!-- ============================= ADMIN TAB ============================= -->
@@ -852,7 +852,7 @@ function closePreview() {
         <p class="text-xs text-ink-500 mt-1">0 = pas d'extrait.</p>
       </div>
       <div>
-        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Exemplaires suspendus offerts (optionnel)</label>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Exemplaires gratuits offerts (optionnel)</label>
         <input type="number" min="0" max="20" id="editDonatedCopies" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
         <p class="text-xs text-ink-500 mt-1">Augmenter ce nombre ajoute des exemplaires supplémentaires au pot commun. Le diminuer ne retire pas ceux déjà donnés.</p>
       </div>
@@ -1158,10 +1158,13 @@ function showTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.getElementById("tab-" + name).classList.add("active");
   // On ne garde le lien direct ?book=... dans l'URL que tant qu'on reste sur
-  // la fiche du livre ; des qu'on change d'onglet, on nettoie l'URL.
+  // la fiche du livre ; dès qu'on change d'onglet, on nettoie l'URL et on
+  // restaure le titre/les meta par défaut (sinon Google et les partages
+  // gardent le titre du dernier livre consulté).
   if (name !== "detail" && window.location.search.includes("book=")) {
     history.replaceState({}, "", window.location.pathname);
   }
+  if (name !== "detail") resetSeoDefaults();
   if (name === "marketplace") renderMarketplace();
   if (name === "seller") loadSellerData();
   if (name === "library") loadLibrary();
@@ -1664,7 +1667,7 @@ async function openBook(bookId) {
   const actionButton = alreadyOwned
     ? `<div class="mt-4 flex gap-2">
          <button onclick="readBook('${book.id}')" class="flex-1 bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-3 rounded-lg transition">Lire en ligne</button>
-         <button onclick="downloadBook('${book.id}', this)" class="flex-1 bg-paper-200 hover:bg-paper-300 text-ink-800 font-medium py-3 rounded-lg transition border border-ink-100">Telecharger</button>
+         <button onclick="downloadBook('${book.id}', this)" class="flex-1 bg-paper-200 hover:bg-paper-300 text-ink-800 font-medium py-3 rounded-lg transition border border-ink-100">Télécharger</button>
        </div>
        <p class="text-xs text-ink-500 mt-2 text-center">Deja dans ta bibliothèque</p>`
     : book.price_cents === 0
@@ -1680,12 +1683,12 @@ async function openBook(bookId) {
            const remainder = 100 - (book.price_cents % 100);
            const donation = remainder === 100 ? 100 : remainder;
            const roundedTotal = book.price_cents + donation;
-           return `Arrondir a ${money(roundedTotal, book.currency.toUpperCase())} pour soutenir l'accès a la lecture (+${money(donation, book.currency.toUpperCase())})`;
+           return `Arrondir à ${money(roundedTotal, book.currency.toUpperCase())} pour soutenir l'accès à la lecture (+${money(donation, book.currency.toUpperCase())})`;
          })()}
        </label>
        <label class="flex items-center gap-2 mt-2 text-sm text-ink-600 cursor-pointer">
          <input type="checkbox" id="suspendExtraCheckbox" />
-         Offrir aussi un exemplaire "suspendu" a quelqu'un dans le besoin (+${money(book.price_cents, book.currency.toUpperCase())})
+         Offrir aussi un exemplaire gratuit à quelqu'un dans le besoin (+${money(book.price_cents, book.currency.toUpperCase())})
        </label>
        <p id="buyMsg" class="text-sm mt-3 text-err"></p>`;
 
@@ -1702,7 +1705,7 @@ async function openBook(bookId) {
         <p class="text-ink-600 mt-3 whitespace-pre-line break-words">${book.description ?? ""}</p>
         <p class="font-mono text-2xl text-gilt-700 mt-6">${priceLabel(book.price_cents, book.currency.toUpperCase())}</p>
         <div class="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs text-ink-500">
-          <span>🔒 Paiement securise</span>
+          <span>🔒 Paiement sécurisé</span>
           <span>📖 Lecture en ligne incluse</span>
           <span>⬇️ Telechargement ${(book.file_format || "pdf").toUpperCase()} immediat</span>
           ${book.free_preview_pages > 0 ? `<span>👀 Extrait gratuit (${book.free_preview_pages} pages)</span>` : ""}
@@ -1724,6 +1727,7 @@ async function openBook(bookId) {
     </div>
   `;
   history.replaceState({}, "", bookShareUrl(book.id));
+  updateSeoForBook(book);
   showTab("detail");
 }
 
@@ -2280,7 +2284,7 @@ async function loadLibrary() {
       </div>
       <div class="flex flex-col gap-2 shrink-0">
         <button onclick="readBook('${p.book_id}')" class="bg-gilt-500 hover:bg-gilt-700 text-white text-sm font-medium px-4 py-2 rounded-lg">${hasProgress ? "Reprendre" : "Lire en ligne"}</button>
-        <button onclick="downloadBook('${p.book_id}', this)" class="bg-paper-200 hover:bg-paper-300 text-ink-800 text-sm font-medium px-4 py-2 rounded-lg border border-ink-100">Telecharger</button>
+        <button onclick="downloadBook('${p.book_id}', this)" class="bg-paper-200 hover:bg-paper-300 text-ink-800 text-sm font-medium px-4 py-2 rounded-lg border border-ink-100">Télécharger</button>
       </div>
     </div>
   `;
@@ -2334,9 +2338,9 @@ async function downloadBook(bookId, btn) {
   }
 }
 
-// Lien partageable direct vers la page d'un livre (utilise via ?book=<id>,
-// lu au démarrage dans init()). Permet a un auteur de partager son livre
-// sans que l'acheteur ait a le chercher dans le catalogue.
+// Lien partageable direct vers la page d'un livre (utilisé via ?book=<id>,
+// lu au démarrage dans init()). Permet à un auteur de partager son livre
+// sans que l'acheteur ait à le chercher dans le catalogue.
 function bookShareUrl(bookId) {
   return `${window.location.origin}${window.location.pathname}?book=${bookId}`;
 }
@@ -2347,12 +2351,82 @@ async function copyBookLink(bookId, btn) {
     await navigator.clipboard.writeText(url);
     if (btn) {
       const original = btn.textContent;
-      btn.textContent = "Lien copie !";
+      btn.textContent = "Lien copié !";
       setTimeout(() => { if (btn) btn.textContent = original; }, 2000);
     }
   } catch (_) {
     prompt("Copie ce lien :", url);
   }
+}
+
+// ============================================================
+// SEO PAR FICHE LIVRE
+// ============================================================
+// Par defaut, toute la page partage le meme <title>/<meta> puisque c'est une
+// single-page app. Sans ca, Google (et un lien partage sur les reseaux)
+// affiche toujours "Ae-book — La marketplace..." meme sur la fiche d'un
+// livre precis, ce qui nuit fortement au referencement des livres eux-memes.
+// On met donc a jour le titre, les meta descriptions/OG/Twitter, et on
+// injecte des donnees structurees JSON-LD (schema.org/Book) a chaque
+// ouverture de fiche, puis on restaure les valeurs par defaut en sortant.
+const SEO_DEFAULT_TITLE = document.title;
+const SEO_DEFAULT_DESCRIPTION = document.querySelector('meta[name="description"]')?.content ?? "";
+
+function setMetaContent(selector, value) {
+  const el = document.querySelector(selector);
+  if (el) el.setAttribute("content", value);
+}
+
+function updateSeoForBook(book) {
+  const authorLabel = book.author_name || "un auteur indépendant";
+  const title = `${book.title} — ${authorLabel} | Ae-book`;
+  const rawDescription = book.description?.trim()
+    ? book.description.trim()
+    : `Achetez "${book.title}" de ${authorLabel} en PDF/EPUB sur Ae-book, la marketplace des auteurs indépendants.`;
+  const description = rawDescription.length > 160 ? rawDescription.slice(0, 157) + "..." : rawDescription;
+
+  document.title = title;
+  setMetaContent('meta[name="description"]', description);
+  setMetaContent('meta[property="og:title"]', title);
+  setMetaContent('meta[property="og:description"]', description);
+  setMetaContent('meta[property="og:type"]', "book");
+  setMetaContent('meta[name="twitter:title"]', title);
+  setMetaContent('meta[name="twitter:description"]', description);
+
+  let ld = document.getElementById("book-jsonld");
+  if (!ld) {
+    ld = document.createElement("script");
+    ld.type = "application/ld+json";
+    ld.id = "book-jsonld";
+    document.head.appendChild(ld);
+  }
+  ld.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": book.title,
+    "author": { "@type": "Person", "name": authorLabel },
+    "inLanguage": book.language || "fr",
+    "isbn": book.isbn || undefined,
+    "bookFormat": "https://schema.org/EBook",
+    "offers": {
+      "@type": "Offer",
+      "price": (book.price_cents / 100).toFixed(2),
+      "priceCurrency": (book.currency || "eur").toUpperCase(),
+      "availability": "https://schema.org/InStock",
+      "url": bookShareUrl(book.id),
+    },
+  });
+}
+
+function resetSeoDefaults() {
+  document.title = SEO_DEFAULT_TITLE;
+  setMetaContent('meta[name="description"]', SEO_DEFAULT_DESCRIPTION);
+  setMetaContent('meta[property="og:title"]', SEO_DEFAULT_TITLE);
+  setMetaContent('meta[property="og:description"]', SEO_DEFAULT_DESCRIPTION);
+  setMetaContent('meta[property="og:type"]', "website");
+  setMetaContent('meta[name="twitter:title"]', SEO_DEFAULT_TITLE);
+  setMetaContent('meta[name="twitter:description"]', SEO_DEFAULT_DESCRIPTION);
+  document.getElementById("book-jsonld")?.remove();
 }
 
 // Lecture en ligne : reutilise la modale d'aperçu, mais avec l'URL signee (ou
@@ -2623,7 +2697,7 @@ async function loadFundBanner() {
 }
 
 async function fundSuspendedBook(bookId, btn) {
-  if (!confirm("Utiliser le fonds solidaire pour financer un exemplaire suspendu de ce livre ? Le vendeur sera payé immédiatement.")) return;
+  if (!confirm("Utiliser le fonds solidaire pour financer un exemplaire gratuit de ce livre ? Le vendeur sera payé immédiatement.")) return;
   btn.disabled = true;
   btn.textContent = "...";
   const { error } = await invokeEdge("fund-suspended-book", { book_id: bookId });
@@ -2633,7 +2707,7 @@ async function fundSuspendedBook(bookId, btn) {
     btn.textContent = "Financer un exemplaire";
     return;
   }
-  alert("Exemplaire suspendu financé ! Il est désormais disponible dans la section Livres suspendus.");
+  alert("Exemplaire gratuit financé ! Il est désormais disponible dans la section Livres gratuits.");
   loadAdminBooks();
 }
 
