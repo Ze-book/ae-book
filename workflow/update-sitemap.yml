@@ -1,0 +1,34 @@
+name: Update sitemap.xml
+
+# Va chercher le sitemap genere dynamiquement par la fonction Supabase et le
+# commit comme fichier statique a la racine du repo, pour que GitHub Pages le
+# serve sur ae-book.fr/sitemap.xml (meme domaine que le site = accepte par
+# Google Search Console, contrairement a une URL Supabase directe).
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # tous les jours a 4h UTC (~6h heure de Paris)
+  workflow_dispatch: {}    # bouton "Run workflow" manuel depuis l'onglet Actions
+
+permissions:
+  contents: write
+
+jobs:
+  update-sitemap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Recuperer le sitemap depuis la fonction Supabase
+        run: curl -sSL --fail "${{ secrets.SITEMAP_FUNCTION_URL }}" -o sitemap.xml
+
+      - name: Verifier que le resultat est bien du XML (et pas une page d'erreur)
+        run: grep -q "<urlset" sitemap.xml
+
+      - name: Commit si le contenu a change
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sitemap.xml
+          git diff --cached --quiet || git commit -m "Mise a jour automatique du sitemap"
+          git push
