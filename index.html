@@ -345,6 +345,25 @@
       <button onclick="buySlotPack()" id="buySlotsBtn" class="hidden bg-ink-700 hover:bg-ink-800 text-white font-medium px-5 py-2.5 rounded-lg transition">Acheter 5 emplacements (1€)</button>
     </div>
 
+    <div id="sellerStatsBox" class="mb-8 rounded-2xl border border-ink-100 bg-paper-100 p-6">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+        <h2 class="font-display text-xl font-600 text-ink-800">Statistiques</h2>
+        <div class="flex gap-2 flex-wrap">
+          <select id="statsBookSelect" onchange="loadSellerStats()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm max-w-[16rem]"></select>
+          <select id="statsPeriodSelect" onchange="loadSellerStats()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm">
+            <option value="7">7 derniers jours</option>
+            <option value="30" selected>30 derniers jours</option>
+            <option value="90">90 derniers jours</option>
+            <option value="365">12 derniers mois</option>
+          </select>
+        </div>
+      </div>
+      <div id="statsCards" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+      <div class="bg-white border border-ink-100 rounded-xl p-3 mb-2"><canvas id="sellerStatsChart" height="110"></canvas></div>
+      <p class="text-xs text-ink-400 mb-4">Une "vue" = une ouverture de la fiche du livre (comptée une fois par visiteur toutes les 30 minutes ; tes propres visites ne comptent pas).</p>
+      <div id="statsPerBook"></div>
+    </div>
+
     <div class="grid lg:grid-cols-2 gap-8">
       <div class="bg-paper-100 border border-ink-100 rounded-2xl p-6">
         <h2 class="font-display text-xl font-600 mb-4">Publier un nouveau livre</h2>
@@ -1726,6 +1745,7 @@ async function openBook(bookId) {
       ${reviewsHtml}
     </div>
   `;
+  if (book.status === "live" && currentUser?.id !== book.seller_id) trackBookEvent(book.id, "view");
   history.replaceState({}, "", bookShareUrl(book.id));
   updateSeoForBook(book);
   showTab("detail");
@@ -1871,6 +1891,8 @@ async function loadSellerData() {
     salesByBook[s.book_id].revenueCents += s.seller_amount_cents;
   }
 
+  initSellerStats(books ?? []);
+
   const list = document.getElementById("myBooksList");
   if (!books || books.length === 0) {
     list.innerHTML = `<p class="text-ink-500 text-sm">Tu n'as pas encore publie de livre.</p>`;
@@ -1901,6 +1923,149 @@ async function loadSellerData() {
       </div>
     `;
   }).join("");
+}
+
+// ============================================================
+// DASHBOARD VENDEUR (statistiques)
+// ============================================================
+let sellerStatsChart = null;
+let sellerStatsBooks = [];
+
+function escapeText(s) {
+  return String(s ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+async function initSellerStats(books) {
+  sellerStatsBooks = books;
+  const select = document.getElementById("statsBookSelect");
+  const previous = select.value;
+  select.innerHTML = `<option value="">Tous mes livres</option>` +
+    books.map(b => `<option value="${b.id}">${escapeText(b.title)}</option>`).join("");
+  if (previous && books.some(b => b.id === previous)) select.value = previous;
+  await loadRatings();
+  loadSellerStats();
+}
+
+function statCard(label, value, hint) {
+  return `
+    <div class="bg-white border border-ink-100 rounded-xl p-4">
+      <p class="text-xs text-ink-500">${label}</p>
+      <p class="font-display text-2xl font-600 text-ink-800 mt-1">${value}</p>
+      ${hint ? `<p class="text-xs text-ink-400 mt-0.5">${hint}</p>` : ""}
+    </div>`;
+}
+
+async function loadSellerStats() {
+  const bookId = document.getElementById("statsBookSelect").value || null;
+  const days = parseInt(document.getElementById("statsPeriodSelect").value, 10);
+  const cards = document.getElementById("statsCards");
+  const perBookBox = document.getElementById("statsPerBook");
+
+  if (sellerStatsBooks.length === 0) {
+    cards.innerHTML = `<p class="text-sm text-ink-500 col-span-full">Les statistiques apparaîtront dès que tu auras publié un livre.</p>`;
+    perBookBox.innerHTML = "";
+    if (sellerStatsChart) { sellerStatsChart.destroy(); sellerStatsChart = null; }
+    return;
+  }
+
+  const { data, error } = await sb.rpc("seller_stats", { p_book_id: bookId, p_days: days });
+  if (error || !data) {
+    cards.innerHTML = `<p class="text-sm text-err col-span-full">Impossible de charger les statistiques${error ? " : " + escapeText(error.message) : ""}.</p>`;
+    return;
+  }
+
+  const t = data.totals;
+  const conversion = t.unique_visitors > 0 ? ((t.sales / t.unique_visitors) * 100).toFixed(1).replace(".", ",") + " %" : "—";
+
+  // Note moyenne : celle du livre choisi, sinon moyenne de ses livres notés
+  let ratingLabel = "—", ratingHint = "";
+  if (bookId) {
+    const r = ratingsByBook[bookId];
+    if (r) { ratingLabel = `${r.avg_rating} / 5`; ratingHint = `${r.review_count} avis`; }
+  } else {
+    const rated = sellerStatsBooks.map(b => ratingsByBook[b.id]).filter(Boolean);
+    if (rated.length) {
+      const totalReviews = rated.reduce((s, r) => s + Number(r.review_count), 0);
+      const avg = rated.reduce((s, r) => s + Number(r.avg_rating) * Number(r.review_count), 0) / totalReviews;
+      ratingLabel = `${avg.toFixed(1).replace(".", ",")} / 5`;
+      ratingHint = `${totalReviews} avis`;
+    }
+  }
+
+  cards.innerHTML =
+    statCard("Vues de la fiche", t.views, "personnes ayant cliqué") +
+    statCard("Visiteurs uniques", t.unique_visitors, "") +
+    statCard("Extraits lus", t.previews, "extrait gratuit") +
+    statCard("Achats", t.sales, "") +
+    statCard("Revenus (ta part)", money(t.revenue_cents), "") +
+    statCard("Taux de conversion", conversion, "achats / visiteurs uniques") +
+    statCard("Note moyenne", ratingLabel, ratingHint) +
+    statCard("Période", `${days} j`, "");
+
+  // Graphique : vues (barres) et achats (courbe) par jour
+  const ctx = document.getElementById("sellerStatsChart");
+  if (sellerStatsChart) sellerStatsChart.destroy();
+  sellerStatsChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: data.daily.map(d => d.day.slice(5)),
+      datasets: [
+        { type: "bar", label: "Vues", data: data.daily.map(d => d.views), backgroundColor: "#748BAF", borderRadius: 3, yAxisID: "y" },
+        { type: "line", label: "Achats", data: data.daily.map(d => d.sales), borderColor: "#B8873A", backgroundColor: "#B8873A", tension: 0.25, yAxisID: "y1" },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { position: "bottom" } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } },
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#EAEDF3" }, title: { display: true, text: "Vues" } },
+        y1: { beginAtZero: true, position: "right", ticks: { precision: 0 }, grid: { display: false }, title: { display: true, text: "Achats" } },
+      },
+    },
+  });
+
+  // Tableau comparatif (uniquement en mode "Tous mes livres")
+  if (bookId) {
+    perBookBox.innerHTML = "";
+  } else {
+    perBookBox.innerHTML = `
+      <p class="font-medium text-ink-800 text-sm mb-2">Détail par livre <span class="text-ink-400 font-normal">(clique sur un livre pour voir ses statistiques)</span></p>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-left text-xs text-ink-500 border-b border-ink-100">
+            <th class="py-2 pr-3 font-medium">Livre</th><th class="py-2 pr-3 font-medium">Vues</th><th class="py-2 pr-3 font-medium">Visiteurs</th>
+            <th class="py-2 pr-3 font-medium">Achats</th><th class="py-2 pr-3 font-medium">Revenus</th><th class="py-2 font-medium">Conversion</th>
+          </tr></thead>
+          <tbody>
+            ${data.per_book.map(b => {
+              const conv = b.unique_visitors > 0 ? ((b.sales / b.unique_visitors) * 100).toFixed(1).replace(".", ",") + " %" : "—";
+              return `<tr class="border-b border-ink-100 cursor-pointer hover:bg-white" onclick="selectStatsBook('${b.book_id}')">
+                <td class="py-2 pr-3 text-ink-800">${escapeText(b.title)}</td><td class="py-2 pr-3">${b.views}</td><td class="py-2 pr-3">${b.unique_visitors}</td>
+                <td class="py-2 pr-3">${b.sales}</td><td class="py-2 pr-3">${money(b.revenue_cents)}</td><td class="py-2">${conv}</td></tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>`;
+  }
+}
+
+function selectStatsBook(bookId) {
+  document.getElementById("statsBookSelect").value = bookId;
+  loadSellerStats();
+}
+
+// Enregistre une vue / un extrait lu pour les stats du vendeur. Une seule
+// fois par visiteur et par livre toutes les 30 minutes, pour éviter de gonfler
+// les chiffres à chaque rechargement de page.
+async function trackBookEvent(bookId, type) {
+  try {
+    const key = `aebook_evt_${type}_${bookId}`;
+    if (Date.now() - Number(localStorage.getItem(key) || 0) < 30 * 60 * 1000) return;
+    localStorage.setItem(key, String(Date.now()));
+    await sb.from("book_events").insert({ book_id: bookId, event_type: type, visitor_id: getVisitorId() });
+  } catch (_) { /* le suivi ne doit jamais gêner la navigation */ }
 }
 
 async function toggleListing(bookId, currentStatus) {
@@ -2453,6 +2618,7 @@ async function readBook(bookId) {
 // est bloquée au-delà du nombre de pages autorise par le vendeur. Pas de
 // sauvegarde de progression ici (le livre n'est pas encore possédé).
 async function previewFreeExcerpt(bookId) {
+  trackBookEvent(bookId, "preview");
   showReaderLoading("Chargement de l'extrait...");
   const { data, error } = await invokeEdge("get-preview-url", { book_id: bookId });
   if (error) { closePreview(); alert(error); return; }
