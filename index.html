@@ -137,6 +137,7 @@
     <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-ink-600">
       <button onclick="showTab('marketplace')" class="hover:text-ink-900">Explorer</button>
       <button onclick="showTab('seller')" class="hover:text-ink-900">Vendre un livre</button>
+      <button onclick="showTab('stats')" id="statsNavBtn" class="hidden hover:text-ink-900">Statistiques</button>
       <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliothèque</button>
       <button onclick="showTab('messages')" class="hover:text-ink-900 relative">Messagerie<span id="unreadBadge" class="hidden absolute -top-2 -right-3 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
       <button onclick="showTab('suspended')" class="hover:text-ink-900">Livres gratuits</button>
@@ -147,6 +148,7 @@
   <nav class="sm:hidden flex items-center gap-1 overflow-x-auto border-t border-ink-100 text-xs font-medium text-ink-600 py-2 px-1">
     <button onclick="showTab('marketplace')" class="shrink-0 px-2 py-1">Explorer</button>
     <button onclick="showTab('seller')" class="shrink-0 px-2 py-1">Vendre</button>
+    <button onclick="showTab('stats')" id="statsNavBtnMobile" class="hidden shrink-0 px-2 py-1">Stats</button>
     <button onclick="showTab('library')" class="shrink-0 px-2 py-1">Bibliotheque</button>
     <button onclick="showTab('messages')" class="shrink-0 px-2 py-1 relative">Messages<span id="unreadBadgeMobile" class="hidden absolute -top-0.5 -right-0.5 bg-err text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center"></span></button>
     <button onclick="showTab('suspended')" class="shrink-0 px-2 py-1">Gratuits</button>
@@ -345,25 +347,6 @@
       <button onclick="buySlotPack()" id="buySlotsBtn" class="hidden bg-ink-700 hover:bg-ink-800 text-white font-medium px-5 py-2.5 rounded-lg transition">Acheter 5 emplacements (1€)</button>
     </div>
 
-    <div id="sellerStatsBox" class="mb-8 rounded-2xl border border-ink-100 bg-paper-100 p-6">
-      <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
-        <h2 class="font-display text-xl font-600 text-ink-800">Statistiques</h2>
-        <div class="flex gap-2 flex-wrap">
-          <select id="statsBookSelect" onchange="loadSellerStats()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm max-w-[16rem]"></select>
-          <select id="statsPeriodSelect" onchange="loadSellerStats()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm">
-            <option value="7">7 derniers jours</option>
-            <option value="30" selected>30 derniers jours</option>
-            <option value="90">90 derniers jours</option>
-            <option value="365">12 derniers mois</option>
-          </select>
-        </div>
-      </div>
-      <div id="statsCards" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
-      <div class="bg-white border border-ink-100 rounded-xl p-3 mb-2"><canvas id="sellerStatsChart" height="110"></canvas></div>
-      <p class="text-xs text-ink-400 mb-4">Une "vue" = une ouverture de la fiche du livre (comptée une fois par visiteur toutes les 30 minutes ; tes propres visites ne comptent pas).</p>
-      <div id="statsPerBook"></div>
-    </div>
-
     <div class="grid lg:grid-cols-2 gap-8">
       <div class="bg-paper-100 border border-ink-100 rounded-2xl p-6">
         <h2 class="font-display text-xl font-600 mb-4">Publier un nouveau livre</h2>
@@ -457,6 +440,30 @@
     </div>
   </section>
 
+
+  <!-- ============================= STATISTIQUES TAB ============================= -->
+  <section id="tab-stats" class="tab">
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Espace vendeur</p>
+    <h1 class="font-display text-3xl font-600 text-ink-800 mt-1 mb-6">Tes statistiques.</h1>
+    <div id="sellerStatsBox" class="rounded-2xl border border-ink-100 bg-paper-100 p-6">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-5">
+        <h2 class="font-display text-xl font-600 text-ink-800">Statistiques</h2>
+        <div class="flex gap-2 flex-wrap">
+          <select id="statsBookSelect" onchange="loadSellerStats()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm max-w-[16rem]"></select>
+          <select id="statsPeriodSelect" onchange="loadSellerStats()" class="rounded-lg border border-ink-100 px-3 py-2 bg-white text-sm">
+            <option value="7">7 derniers jours</option>
+            <option value="30" selected>30 derniers jours</option>
+            <option value="90">90 derniers jours</option>
+            <option value="365">12 derniers mois</option>
+          </select>
+        </div>
+      </div>
+      <div id="statsCards" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
+      <div class="bg-white border border-ink-100 rounded-xl p-3 mb-2"><canvas id="sellerStatsChart" height="110"></canvas></div>
+      <p class="text-xs text-ink-400 mb-4">Une "vue" = une ouverture de la fiche du livre (comptée une fois par visiteur toutes les 30 minutes ; tes propres visites ne comptent pas).</p>
+      <div id="statsPerBook"></div>
+    </div>
+  </section>
 
   <!-- ============================= LIBRARY TAB ============================= -->
   <section id="tab-library" class="tab">
@@ -1186,6 +1193,7 @@ function showTab(name) {
   if (name !== "detail") resetSeoDefaults();
   if (name === "marketplace") renderMarketplace();
   if (name === "seller") loadSellerData();
+  if (name === "stats") loadStatsTab();
   if (name === "library") loadLibrary();
   if (name === "messages") loadMyMessages();
   if (name === "suspended") loadSuspendedBooks();
@@ -1891,8 +1899,6 @@ async function loadSellerData() {
     salesByBook[s.book_id].revenueCents += s.seller_amount_cents;
   }
 
-  initSellerStats(books ?? []);
-
   const list = document.getElementById("myBooksList");
   if (!books || books.length === 0) {
     list.innerHTML = `<p class="text-ink-500 text-sm">Tu n'as pas encore publie de livre.</p>`;
@@ -1944,6 +1950,16 @@ async function initSellerStats(books) {
   if (previous && books.some(b => b.id === previous)) select.value = previous;
   await loadRatings();
   loadSellerStats();
+}
+
+async function loadStatsTab() {
+  if (!currentUser) { showTab("auth"); return; }
+  const { data: books } = await sb
+    .from("books")
+    .select("id, title")
+    .eq("seller_id", currentUser.id)
+    .order("created_at", { ascending: false });
+  await initSellerStats(books ?? []);
 }
 
 function statCard(label, value, hint) {
@@ -2711,6 +2727,8 @@ async function updateUnreadBadge() {
 function updateAdminNavVisibility() {
   document.getElementById("adminNavBtn").classList.toggle("hidden", !currentProfile?.is_admin);
   document.getElementById("adminNavBtnMobile").classList.toggle("hidden", !currentProfile?.is_admin);
+  document.getElementById("statsNavBtn").classList.toggle("hidden", !currentUser);
+  document.getElementById("statsNavBtnMobile").classList.toggle("hidden", !currentUser);
 }
 
 let onlineNowInterval = null;
