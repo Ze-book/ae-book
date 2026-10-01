@@ -141,6 +141,7 @@
       <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliothèque</button>
       <button onclick="showTab('messages')" class="hover:text-ink-900 relative">Messagerie<span id="unreadBadge" class="hidden absolute -top-2 -right-3 bg-err text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"></span></button>
       <button onclick="showTab('suspended')" class="hover:text-ink-900">Livres gratuits</button>
+      <button onclick="showTab('forum')" class="hover:text-ink-900">Forum</button>
       <button onclick="showTab('admin')" id="adminNavBtn" class="hidden hover:text-ink-900 text-err">Admin</button>
     </nav>
     <div id="authArea" class="flex items-center gap-3"></div>
@@ -152,6 +153,7 @@
     <button onclick="showTab('library')" class="shrink-0 px-2 py-1">Bibliotheque</button>
     <button onclick="showTab('messages')" class="shrink-0 px-2 py-1 relative">Messages<span id="unreadBadgeMobile" class="hidden absolute -top-0.5 -right-0.5 bg-err text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center"></span></button>
     <button onclick="showTab('suspended')" class="shrink-0 px-2 py-1">Gratuits</button>
+    <button onclick="showTab('forum')" class="shrink-0 px-2 py-1">Forum</button>
     <button onclick="showTab('admin')" id="adminNavBtnMobile" class="hidden shrink-0 px-2 py-1 text-err">Admin</button>
   </nav>
 </header>
@@ -462,6 +464,43 @@
       <div class="bg-white border border-ink-100 rounded-xl p-3 mb-2"><canvas id="sellerStatsChart" height="110"></canvas></div>
       <p class="text-xs text-ink-400 mb-4">Une "vue" = une ouverture de la fiche du livre (comptée une fois par visiteur toutes les 30 minutes ; tes propres visites ne comptent pas).</p>
       <div id="statsPerBook"></div>
+    </div>
+  </section>
+
+  <!-- ============================= FORUM TAB ============================= -->
+  <section id="tab-forum" class="tab">
+    <div id="forumListView">
+      <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+        <div>
+          <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Communauté</p>
+          <h1 class="font-display text-3xl font-600 text-ink-800 mt-1">Forum.</h1>
+        </div>
+        <button onclick="openNewThreadForm()" class="bg-ink-700 hover:bg-ink-800 text-white font-medium px-5 py-2.5 rounded-lg transition">Nouveau sujet</button>
+      </div>
+
+      <div id="newThreadForm" class="hidden bg-paper-100 border border-ink-100 rounded-2xl p-6 mb-6">
+        <h2 class="font-display text-lg font-600 mb-3">Nouveau sujet</h2>
+        <input id="newThreadTitle" maxlength="150" placeholder="Titre du sujet" class="w-full rounded-lg border border-ink-100 px-3 py-2 bg-white mb-3" />
+        <textarea id="newThreadBody" rows="4" maxlength="5000" placeholder="Ton message..." class="w-full rounded-lg border border-ink-100 px-3 py-2 bg-white mb-3"></textarea>
+        <p id="newThreadMsg" class="text-sm mb-2"></p>
+        <div class="flex gap-3">
+          <button onclick="submitNewThread(this)" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Publier</button>
+          <button onclick="document.getElementById('newThreadForm').classList.add('hidden')" class="text-ink-500 text-sm underline">Annuler</button>
+        </div>
+      </div>
+
+      <div id="forumThreadsList" class="space-y-3"></div>
+    </div>
+
+    <div id="forumThreadView" class="hidden max-w-3xl mx-auto">
+      <button onclick="backToForumList()" class="text-sm text-ink-500 hover:text-ink-800 mb-6">&larr; Retour au forum</button>
+      <h1 id="forumThreadTitle" class="font-display text-2xl font-600 text-ink-800 mb-6"></h1>
+      <div id="forumMessagesList" class="space-y-4 mb-6"></div>
+      <div id="forumReplyBox" class="bg-paper-100 border border-ink-100 rounded-2xl p-5">
+        <textarea id="forumReplyBody" rows="3" maxlength="5000" placeholder="Ta réponse..." class="w-full rounded-lg border border-ink-100 px-3 py-2 bg-white mb-3"></textarea>
+        <p id="forumReplyMsg" class="text-sm mb-2"></p>
+        <button onclick="submitForumReply(this)" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Répondre</button>
+      </div>
     </div>
   </section>
 
@@ -990,17 +1029,44 @@ document.getElementById("reviewForm").addEventListener("submit", async (e) => {
         <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Motif</label>
         <select required id="reportReason" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white">
           <option value="plagiat">Plagiat</option>
-          <option value="contenu_inapproprie">Contenu inapproprie</option>
+          <option value="contenu_inapproprie">Contenu inapproprié</option>
           <option value="contrefacon">Contrefaçon / droits d'auteur</option>
           <option value="autre">Autre</option>
         </select>
       </div>
       <div>
-        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Details (optionnel)</label>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Détails (optionnel)</label>
         <textarea id="reportDetails" rows="4" placeholder="Explique le problème le plus précisément possible..." class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
       </div>
       <button type="submit" id="reportSubmitBtn" class="w-full bg-err hover:opacity-90 text-white font-medium py-2.5 rounded-lg transition">Envoyer le signalement</button>
       <p id="reportMsg" class="text-sm"></p>
+    </form>
+  </div>
+</div>
+
+<div id="forumReportModal" class="hidden fixed inset-0 z-50 bg-ink-900/70 flex items-center justify-center p-4">
+  <div class="bg-paper-100 rounded-2xl w-full max-w-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-display text-xl font-600 text-ink-800">Signaler ce message</p>
+      <button onclick="closeForumReportModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+    </div>
+    <form id="forumReportForm" class="space-y-4">
+      <input type="hidden" id="forumReportMessageId" />
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Motif</label>
+        <select required id="forumReportReason" class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white">
+          <option value="harcelement">Harcèlement / propos insultants</option>
+          <option value="contenu_inapproprie">Contenu inapproprié</option>
+          <option value="spam">Spam / publicité</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Détails (optionnel)</label>
+        <textarea id="forumReportDetails" rows="4" placeholder="Explique le problème le plus précisément possible..." class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+      </div>
+      <button type="submit" id="forumReportSubmitBtn" class="w-full bg-err hover:opacity-90 text-white font-medium py-2.5 rounded-lg transition">Envoyer le signalement</button>
+      <p id="forumReportMsg" class="text-sm"></p>
     </form>
   </div>
 </div>
@@ -1019,9 +1085,227 @@ function closeReportModal() {
   document.getElementById("reportModal").classList.add("hidden");
 }
 
+// ============================================================
+// FORUM
+// ============================================================
+let currentForumThreadId = null;
+
+function openNewThreadForm() {
+  if (!currentUser) { showTab("auth"); return; }
+  document.getElementById("newThreadForm").classList.remove("hidden");
+}
+
+async function loadForumThreads() {
+  const list = document.getElementById("forumThreadsList");
+  list.innerHTML = `<p class="text-ink-500 text-center py-10">Chargement...</p>`;
+  const { data, error } = await sb.rpc("get_forum_threads");
+  if (error) {
+    list.innerHTML = `<p class="text-err text-center py-10">Impossible de charger le forum.</p>`;
+    return;
+  }
+  if (!data || data.length === 0) {
+    list.innerHTML = `<p class="text-ink-500 text-center py-16">Aucun sujet pour le moment. Sois le premier à en lancer un !</p>`;
+    return;
+  }
+  list.innerHTML = data.map(t => `
+    <button onclick="openForumThread('${t.id}')" class="w-full text-left bg-paper-100 border border-ink-100 rounded-xl p-4 hover:border-gilt-500 transition flex items-center justify-between gap-4">
+      <div class="min-w-0">
+        <p class="font-medium text-ink-800 truncate">${escapeText(t.title)}</p>
+        <p class="text-xs text-ink-500 mt-0.5">Par ${escapeText(t.author_name)} &middot; ${new Date(t.created_at).toLocaleDateString("fr-FR")}</p>
+      </div>
+      <div class="shrink-0 text-right text-xs text-ink-500">
+        <p>${t.message_count} message${t.message_count > 1 ? "s" : ""}</p>
+        <p>Dernier : ${new Date(t.last_message_at).toLocaleDateString("fr-FR")}</p>
+      </div>
+    </button>
+  `).join("");
+}
+
+async function submitNewThread(btn) {
+  if (!currentUser) { showTab("auth"); return; }
+  const title = document.getElementById("newThreadTitle").value.trim();
+  const body = document.getElementById("newThreadBody").value.trim();
+  const msg = document.getElementById("newThreadMsg");
+  if (title.length < 3) { msg.className = "text-sm text-err"; msg.textContent = "Le titre doit faire au moins 3 caractères."; return; }
+  if (!body) { msg.className = "text-sm text-err"; msg.textContent = "Écris un message pour lancer la discussion."; return; }
+
+  btn.disabled = true;
+  const { data: thread, error: threadErr } = await sb.from("forum_threads").insert({ title, author_id: currentUser.id }).select().single();
+  if (threadErr) {
+    btn.disabled = false;
+    msg.className = "text-sm text-err";
+    msg.textContent = threadErr.message;
+    return;
+  }
+  const { error: msgErr } = await sb.from("forum_messages").insert({ thread_id: thread.id, author_id: currentUser.id, body });
+  btn.disabled = false;
+  if (msgErr) {
+    msg.className = "text-sm text-err";
+    msg.textContent = msgErr.message;
+    return;
+  }
+  document.getElementById("newThreadTitle").value = "";
+  document.getElementById("newThreadBody").value = "";
+  document.getElementById("newThreadForm").classList.add("hidden");
+  msg.textContent = "";
+  await loadForumThreads();
+  openForumThread(thread.id);
+}
+
+async function openForumThread(threadId) {
+  currentForumThreadId = threadId;
+  document.getElementById("forumListView").classList.add("hidden");
+  document.getElementById("forumThreadView").classList.remove("hidden");
+  await loadForumMessages();
+}
+
+function backToForumList() {
+  currentForumThreadId = null;
+  document.getElementById("forumThreadView").classList.add("hidden");
+  document.getElementById("forumListView").classList.remove("hidden");
+  loadForumThreads();
+}
+
+async function loadForumMessages() {
+  const list = document.getElementById("forumMessagesList");
+  const { data: messages, error } = await sb.rpc("get_forum_messages", { p_thread_id: currentForumThreadId });
+  if (error || !messages || messages.length === 0) {
+    document.getElementById("forumThreadTitle").textContent = "";
+    list.innerHTML = `<p class="text-err text-center py-10">Ce sujet n'existe plus.</p>`;
+    return;
+  }
+  const { data: thread } = await sb.from("forum_threads").select("title").eq("id", currentForumThreadId).maybeSingle();
+  document.getElementById("forumThreadTitle").textContent = thread?.title ?? "";
+
+  list.innerHTML = messages.map(m => {
+    const canDelete = currentProfile?.is_admin || m.author_id === currentUser?.id;
+    return `
+    <div class="bg-paper-100 border border-ink-100 rounded-xl p-4" data-message-id="${m.id}">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <p class="text-sm font-medium text-ink-800">${escapeText(m.author_name)}</p>
+        <p class="text-xs text-ink-400">${new Date(m.created_at).toLocaleString("fr-FR")}</p>
+      </div>
+      <p class="text-sm text-ink-700 whitespace-pre-wrap break-words">${escapeText(m.body)}</p>
+      <div class="flex items-center gap-4 mt-3 text-xs">
+        <button onclick="toggleForumLike('${m.id}', this)" data-liked="${m.liked_by_me}" class="flex items-center gap-1 ${m.liked_by_me ? "text-gilt-700" : "text-ink-500"} hover:text-gilt-700">
+          <span>${m.liked_by_me ? "♥" : "♡"}</span> <span data-like-count>${m.like_count}</span>
+        </button>
+        <button onclick="openForumReportModal('${m.id}')" class="text-ink-400 hover:text-err underline">Signaler</button>
+        ${canDelete ? `<button onclick="deleteForumMessage('${m.id}')" class="text-ink-400 hover:text-err underline">Supprimer</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  const canDeleteThread = currentProfile?.is_admin || messages[0]?.author_id === currentUser?.id;
+  const existingBtn = document.getElementById("deleteThreadBtn");
+  if (existingBtn) existingBtn.remove();
+  if (canDeleteThread) {
+    const btn = document.createElement("button");
+    btn.id = "deleteThreadBtn";
+    btn.className = "text-sm text-err underline mb-4";
+    btn.textContent = "Supprimer tout le sujet";
+    btn.onclick = deleteForumThread;
+    document.getElementById("forumThreadTitle").insertAdjacentElement("afterend", btn);
+  }
+}
+
+async function toggleForumLike(messageId, btn) {
+  if (!currentUser) { showTab("auth"); return; }
+  const liked = btn.dataset.liked === "true";
+  const countEl = btn.querySelector("[data-like-count]");
+  btn.disabled = true;
+  if (liked) {
+    const { error } = await sb.from("forum_message_likes").delete().eq("message_id", messageId).eq("user_id", currentUser.id);
+    if (!error) {
+      btn.dataset.liked = "false";
+      btn.classList.remove("text-gilt-700");
+      btn.classList.add("text-ink-500");
+      btn.querySelector("span").textContent = "♡";
+      countEl.textContent = Math.max(0, parseInt(countEl.textContent, 10) - 1);
+    }
+  } else {
+    const { error } = await sb.from("forum_message_likes").insert({ message_id: messageId, user_id: currentUser.id });
+    if (!error) {
+      btn.dataset.liked = "true";
+      btn.classList.add("text-gilt-700");
+      btn.classList.remove("text-ink-500");
+      btn.querySelector("span").textContent = "♥";
+      countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+    }
+  }
+  btn.disabled = false;
+}
+
+async function submitForumReply(btn) {
+  if (!currentUser) { showTab("auth"); return; }
+  const body = document.getElementById("forumReplyBody").value.trim();
+  const msg = document.getElementById("forumReplyMsg");
+  if (!body) { msg.className = "text-sm text-err"; msg.textContent = "Écris un message avant d'envoyer."; return; }
+  btn.disabled = true;
+  const { error } = await sb.from("forum_messages").insert({ thread_id: currentForumThreadId, author_id: currentUser.id, body });
+  btn.disabled = false;
+  if (error) { msg.className = "text-sm text-err"; msg.textContent = error.message; return; }
+  document.getElementById("forumReplyBody").value = "";
+  msg.textContent = "";
+  await loadForumMessages();
+}
+
+async function deleteForumMessage(messageId) {
+  if (!confirm("Supprimer ce message ?")) return;
+  const { error } = await sb.from("forum_messages").delete().eq("id", messageId);
+  if (error) { alert(error.message); return; }
+  await loadForumMessages();
+}
+
+async function deleteForumThread() {
+  if (!confirm("Supprimer tout le sujet et tous ses messages ?")) return;
+  const { error } = await sb.from("forum_threads").delete().eq("id", currentForumThreadId);
+  if (error) { alert(error.message); return; }
+  backToForumList();
+}
+
+function openForumReportModal(messageId) {
+  if (!currentUser) { showTab("auth"); return; }
+  document.getElementById("forumReportMessageId").value = messageId;
+  document.getElementById("forumReportModal").classList.remove("hidden");
+}
+
+function closeForumReportModal() {
+  document.getElementById("forumReportModal").classList.add("hidden");
+}
+
+document.getElementById("forumReportForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("forumReportSubmitBtn");
+  const msg = document.getElementById("forumReportMsg");
+  btn.disabled = true;
+  btn.textContent = "Envoi...";
+
+  const { error } = await sb.from("forum_message_reports").insert({
+    message_id: document.getElementById("forumReportMessageId").value,
+    reporter_id: currentUser.id,
+    reason: document.getElementById("forumReportReason").value,
+    details: document.getElementById("forumReportDetails").value.trim() || null,
+  });
+
+  btn.disabled = false;
+  btn.textContent = "Envoyer le signalement";
+
+  if (error) {
+    msg.className = "text-sm text-err";
+    msg.textContent = error.message;
+    return;
+  }
+  msg.className = "text-sm text-ok";
+  msg.textContent = "Signalement envoyé, merci.";
+  document.getElementById("forumReportDetails").value = "";
+  setTimeout(closeForumReportModal, 1500);
+});
+
 document.getElementById("reportForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("reportSubmitBtn");
+
   const msg = document.getElementById("reportMsg");
   btn.disabled = true;
   btn.textContent = "Envoi...";
@@ -1194,6 +1478,7 @@ function showTab(name) {
   if (name === "marketplace") renderMarketplace();
   if (name === "seller") loadSellerData();
   if (name === "stats") loadStatsTab();
+  if (name === "forum") { document.getElementById("forumThreadView").classList.add("hidden"); document.getElementById("forumListView").classList.remove("hidden"); currentForumThreadId = null; loadForumThreads(); }
   if (name === "library") loadLibrary();
   if (name === "messages") loadMyMessages();
   if (name === "suspended") loadSuspendedBooks();
