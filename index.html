@@ -3166,11 +3166,10 @@ async function refreshOnlineNow() {
 
 async function loadAdminDashboard() {
   const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-  const [purchasesRes, profilesRes, booksLiveRes, sellersRes, ratingRes, pendingReportsRes, onlineRes] = await Promise.all([
+  const [purchasesRes, adminCountsRes, booksLiveRes, ratingRes, pendingReportsRes, onlineRes] = await Promise.all([
     sb.from("purchases").select("amount_cents, platform_fee_cents, created_at, status").eq("status", "completed"),
-    sb.from("profiles").select("id", { count: "exact", head: true }),
+    sb.rpc("admin_platform_counts"),
     sb.from("books").select("id", { count: "exact", head: true }).eq("status", "live"),
-    sb.from("profiles").select("id", { count: "exact", head: true }).eq("stripe_onboarding_complete", true),
     sb.from("book_rating_stats").select("avg_rating"),
     sb.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
     sb.from("site_presence").select("visitor_id", { count: "exact", head: true }).gte("last_seen", twoMinutesAgo),
@@ -3185,8 +3184,9 @@ async function loadAdminDashboard() {
   document.getElementById("statRevenue").textContent = money(totalRevenue);
   document.getElementById("statVolume").textContent = money(totalVolume);
   document.getElementById("statSales").textContent = purchases.length;
-  document.getElementById("statUsers").textContent = profilesRes.count ?? "—";
-  document.getElementById("statSellers").textContent = sellersRes.count ?? "—";
+  const adminCounts = adminCountsRes.data?.[0] ?? adminCountsRes.data ?? {};
+  document.getElementById("statUsers").textContent = adminCounts.total_users ?? "—";
+  document.getElementById("statSellers").textContent = adminCounts.active_sellers ?? "—";
   document.getElementById("statBooksLive").textContent = booksLiveRes.count ?? "—";
   document.getElementById("statPendingReports").textContent = pendingReportsRes.count ?? "0";
 
