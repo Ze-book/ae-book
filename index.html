@@ -2687,8 +2687,9 @@ function saveBookDraft() {
 
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const form = e.currentTarget;
   if (!currentUser) { showTab("auth"); return; }
-  const isDraft = e.currentTarget.dataset.mode === "draft";
+  const isDraft = form.dataset.mode === "draft";
   if (!isDraft && !stripeReady) {
     const msg = document.getElementById("uploadMsg");
     msg.className = "text-sm mt-3 text-err";
@@ -2764,7 +2765,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     msg.className = "text-sm mt-3 text-err";
     msg.textContent = err.message.replace(/^QUOTA_EXCEEDED:\s*/, "").replace(/^STRIPE_REQUIRED:\s*/, "");
   } finally {
-    e.currentTarget.dataset.mode = "";
+    form.dataset.mode = "";
     btn.disabled = false;
     btn.textContent = "Publier (vérification automatique)";
     loadSellerData(); // remet le bouton dans le bon état (notamment si le quota est atteint)
