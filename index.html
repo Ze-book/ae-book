@@ -136,6 +136,7 @@
     </button>
     <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-ink-600">
       <button onclick="showTab('marketplace')" class="hover:text-ink-900">Explorer</button>
+      <button onclick="showTab('authors'); loadAuthors()" class="hover:text-ink-900">Auteurs</button>
       <button onclick="showTab('seller')" class="hover:text-ink-900">Vendre un livre</button>
       <button onclick="showTab('stats')" id="statsNavBtn" class="hidden hover:text-ink-900">Statistiques</button>
       <button onclick="showTab('library')" class="hover:text-ink-900">Ma bibliothèque</button>
@@ -148,6 +149,7 @@
   </div>
   <nav class="sm:hidden flex items-center gap-1 overflow-x-auto border-t border-ink-100 text-xs font-medium text-ink-600 py-2 px-1">
     <button onclick="showTab('marketplace')" class="shrink-0 px-2 py-1">Explorer</button>
+    <button onclick="showTab('authors'); loadAuthors()" class="shrink-0 px-2 py-1">Auteurs</button>
     <button onclick="showTab('seller')" class="shrink-0 px-2 py-1">Vendre</button>
     <button onclick="showTab('stats')" id="statsNavBtnMobile" class="hidden shrink-0 px-2 py-1">Stats</button>
     <button onclick="showTab('library')" class="shrink-0 px-2 py-1">Bibliotheque</button>
@@ -249,6 +251,16 @@
   function openCguModal() { document.getElementById("cguModal").classList.remove("hidden"); }
   function closeCguModal() { document.getElementById("cguModal").classList.add("hidden"); }
   </script>
+
+  <!-- ============================= AUTHORS TAB ============================= -->
+  <section id="tab-authors" class="tab">
+    <p class="ribbon text-xs font-mono uppercase tracking-widest text-gilt-700">Communauté Ae-book</p>
+    <h1 class="font-display text-3xl sm:text-4xl font-600 text-ink-800 mt-1 mb-2">Les auteurs.</h1>
+    <p class="text-ink-500 mb-8">Chaque auteur est regroupé selon le nom affiché sur ses livres, indépendamment du compte vendeur qui les a publiés.</p>
+    <div id="authorsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <div id="authorsEmpty" class="hidden bg-paper-100 border border-ink-100 rounded-2xl p-8 text-center text-ink-500">Aucun auteur n'est encore visible.</div>
+    <div id="authorDetail" class="hidden"></div>
+  </section>
 
   <!-- ============================= MARKETPLACE TAB ============================= -->
   <section id="tab-marketplace" class="tab">
@@ -354,7 +366,7 @@
         <h2 class="font-display text-xl font-600 mb-4">Publier un nouveau livre</h2>
 
         <div id="uploadLockedMsg" class="hidden text-center py-10">
-          <p class="text-ink-600 mb-3">Tu dois d'abord connecter et terminer la configuration de ton compte Stripe pour pouvoir publier un livre.</p>
+          <p class="text-ink-600 mb-3">Tu peux enregistrer un brouillon sans Stripe. Connecte Stripe uniquement pour le publier en vente.</p>
           <button onclick="connectStripe()" class="bg-gilt-500 hover:bg-gilt-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Connecter Stripe</button>
         </div>
 
@@ -429,6 +441,7 @@
             <input required type="file" accept=".pdf,.epub" id="bookFile" class="mt-1 w-full text-sm" />
             <button type="button" onclick="previewSelectedBook()" class="mt-2 text-sm font-medium text-gilt-700 underline">Voir un aperçu avant de publier</button>
           </div>
+          <button type="button" onclick="saveBookDraft()" class="w-full bg-paper-200 hover:bg-paper-300 text-ink-800 font-medium py-2.5 rounded-lg border border-ink-100 transition">Enregistrer comme brouillon</button>
           <button type="submit" id="uploadBtn" class="w-full bg-ink-700 hover:bg-ink-800 text-white font-medium py-2.5 rounded-lg transition">Publier (vérification automatique)</button>
         </form>
         <p id="uploadMsg" class="text-sm mt-3"></p>
@@ -1484,11 +1497,13 @@ function replyToOpenMessage() {
 // STATE
 // ============================================================
 let currentUser = null;
+let guestAccess = null;
 let currentProfile = null;
 let allLiveBooks = [];
 let authMode = "login"; // or "signup"
 
 const STATUS_LABEL = {
+  draft: { text: "Brouillon", color: "#748BAF" },
   pending:  { text: "En attente de vérification", color: "#B8873A" },
   scanning: { text: "Scan de sécurité en cours",   color: "#B8873A" },
   rejected: { text: "Rejeté",                        color: "#A23B2E" },
@@ -2007,7 +2022,7 @@ async function openBook(bookId) {
   }
 
   // Déjà acheté ? On évite de proposer un rachat inutile.
-  let alreadyOwned = false;
+  let alreadyOwned = guestAccess && window.guestAccessBookId === book.id;
   if (currentUser) {
     const { data: existing } = await sb
       .from("purchases")
@@ -2114,11 +2129,13 @@ async function openBook(bookId) {
 }
 
 async function buyBook(bookId) {
-  if (!currentUser) { showTab("auth"); return; }
+  const buyerEmail = currentUser?.email || window.prompt("Ton email pour recevoir le lien d'accès au livre :", "");
+  if (!buyerEmail) return;
+  trackBookEvent(bookId, "checkout_click");
   const roundUp = document.getElementById("roundUpCheckbox")?.checked ?? false;
   const suspendExtra = document.getElementById("suspendExtraCheckbox")?.checked ?? false;
   const { data, error } = await invokeEdge("create-checkout", {
-    book_id: bookId, success_url: window.location.href, cancel_url: window.location.href, round_up: roundUp, suspend_extra: suspendExtra
+    book_id: bookId, buyer_email: buyerEmail, round_up: roundUp, suspend_extra: suspendExtra
   });
   const msg = document.getElementById("buyMsg");
   if (error) {
@@ -2208,7 +2225,7 @@ async function loadSellerData() {
   // Impossible de publier tant que le compte Stripe n'est pas pret (sinon
   // personne ne pourrait acheter le livre) : le formulaire est masqué et
   // remplacé par une invite à connecter Stripe.
-  document.getElementById("uploadForm").classList.toggle("hidden", !stripeReady);
+  document.getElementById("uploadForm").classList.remove("hidden");
   document.getElementById("uploadLockedMsg").classList.toggle("hidden", stripeReady);
 
   const { data: books } = await sb
@@ -2273,6 +2290,7 @@ async function loadSellerData() {
           <p class="text-xs font-mono text-ok mt-1">${stats.count} vente${stats.count === 1 ? "" : "s"} &middot; ${money(stats.revenueCents)} encaisses</p>
           ${b.verification_notes ? `<p class="text-xs text-err mt-1 break-words">${b.verification_notes}</p>` : ""}
           <div class="flex gap-3 mt-1">
+            ${b.status === "draft" ? `<button onclick="publishDraft('${b.id}', this)" class="text-xs font-medium text-gilt-700 underline">Publier ce brouillon</button>` : ""}
             ${canRetry ? `<button onclick="retryVerification('${b.id}', this)" class="text-xs font-medium text-gilt-700 underline">Relancer la vérification</button>` : ""}
             <button onclick='openEditBook(${JSON.stringify(b).replace(/'/g, "&apos;")})' class="text-xs font-medium text-ink-600 underline">Modifier</button>
             <button onclick="copyBookLink('${b.id}', this)" class="text-xs font-medium text-ink-600 underline">Copier le lien</button>
@@ -2435,6 +2453,8 @@ async function trackBookEvent(bookId, type) {
     if (Date.now() - Number(localStorage.getItem(key) || 0) < 30 * 60 * 1000) return;
     localStorage.setItem(key, String(Date.now()));
     await sb.from("book_events").insert({ book_id: bookId, event_type: type, visitor_id: getVisitorId() });
+    const analyticsName = { view: "book_detail_view", preview: "excerpt_open", checkout_click: "checkout_click", download: "download_started", reader: "reader_opened" }[type];
+    if (analyticsName) await sb.from("analytics_events").insert({ event_name: analyticsName, book_id: bookId, visitor_id: getVisitorId(), user_id: currentUser?.id ?? null });
   } catch (_) { /* le suivi ne doit jamais gêner la navigation */ }
 }
 
@@ -2561,6 +2581,15 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
 
 const retryLastAttempt = {}; // anti rafale : évite de marteler VirusTotal en cliquant plusieurs fois vite
 
+async function publishDraft(bookId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "Publication..."; }
+  const { error } = await invokeEdge("publish-book", { book_id: bookId });
+  if (error) { alert(error); await loadSellerData(); return; }
+  const verification = await invokeEdge("verify-book", { book_id: bookId });
+  if (verification.error) alert(verification.error);
+  await loadSellerData();
+}
+
 async function retryVerification(bookId, btn) {
   const now = Date.now();
   const last = retryLastAttempt[bookId] || 0;
@@ -2628,9 +2657,22 @@ async function uploadBookFileInChunks(file, userId) {
   return paths;
 }
 
+function saveBookDraft() {
+  const form = document.getElementById("uploadForm");
+  form.dataset.mode = "draft";
+  form.requestSubmit();
+}
+
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!currentUser) { showTab("auth"); return; }
+  const isDraft = e.currentTarget.dataset.mode === "draft";
+  if (!isDraft && !stripeReady) {
+    const msg = document.getElementById("uploadMsg");
+    msg.className = "text-sm mt-3 text-err";
+    msg.textContent = "Connecte Stripe pour publier en vente. Tu peux enregistrer ce livre comme brouillon.";
+    return;
+  }
 
   const msg = document.getElementById("uploadMsg");
   const btn = document.getElementById("uploadBtn");
@@ -2679,16 +2721,19 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       language,
       author_name: authorName,
       isbn,
+      status: isDraft ? "draft" : "pending",
     }).select().single();
     if (insertErr) throw insertErr;
 
-    const { data: verifyData, error: verifyErr } = await invokeEdge("verify-book", { book_id: book.id });
-    if (verifyErr) throw new Error(verifyErr);
-
-    msg.className = verifyData.status === "rejected" ? "text-sm mt-3 text-err" : "text-sm mt-3 text-ok";
-    msg.textContent = verifyData.status === "rejected"
-      ? `Rejete : ${verifyData.reason}`
-      : "Livre envoyé ! Scan de sécurité en cours, il sera mis en vente automatiquement s'il est propre.";
+    if (isDraft) {
+      msg.className = "text-sm mt-3 text-ok";
+      msg.textContent = "Brouillon enregistré. Il est invisible du catalogue tant que tu ne le publies pas.";
+    } else {
+      const { data: verifyData, error: verifyErr } = await invokeEdge("verify-book", { book_id: book.id });
+      if (verifyErr) throw new Error(verifyErr);
+      msg.className = verifyData.status === "rejected" ? "text-sm mt-3 text-err" : "text-sm mt-3 text-ok";
+      msg.textContent = verifyData.status === "rejected" ? `Rejete : ${verifyData.reason}` : "Livre envoyé ! Scan de sécurité en cours, il sera mis en vente automatiquement s'il est propre.";
+    }
 
     document.getElementById("uploadForm").reset();
     document.getElementById("bookCoverPreviewWrap").classList.add("hidden");
@@ -2697,6 +2742,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     msg.className = "text-sm mt-3 text-err";
     msg.textContent = err.message.replace(/^QUOTA_EXCEEDED:\s*/, "").replace(/^STRIPE_REQUIRED:\s*/, "");
   } finally {
+    e.currentTarget.dataset.mode = "";
     btn.disabled = false;
     btn.textContent = "Publier (vérification automatique)";
     loadSellerData(); // remet le bouton dans le bon état (notamment si le quota est atteint)
@@ -2847,7 +2893,7 @@ async function downloadBook(bookId, btn) {
   const originalText = btn ? btn.textContent : null;
   if (btn) { btn.disabled = true; btn.textContent = "Telechargement..."; }
   try {
-    const { data, error } = await invokeEdge("get-download-url", { book_id: bookId });
+    const { data, error } = await invokeEdge("get-download-url", { book_id: bookId, ...(guestAccess ? { guest_access: guestAccess } : {}) });
     if (error) throw new Error(error);
 
     const urls = data.chunks && data.chunks.length > 0 ? data.chunks : [data.url];
@@ -2877,7 +2923,8 @@ async function downloadBook(bookId, btn) {
 // lu au démarrage dans init()). Permet à un auteur de partager son livre
 // sans que l'acheteur ait à le chercher dans le catalogue.
 function bookShareUrl(bookId) {
-  return `${window.location.origin}${window.location.pathname}?book=${bookId}`;
+  const guest = new URLSearchParams(window.location.search).get("guest_access");
+  return `${window.location.origin}${window.location.pathname}?book=${encodeURIComponent(bookId)}${guest ? `&guest_access=${encodeURIComponent(guest)}` : ""}`;
 }
 
 async function copyBookLink(bookId, btn) {
@@ -2969,7 +3016,7 @@ function resetSeoDefaults() {
 async function readBook(bookId) {
   showReaderLoading("Chargement du livre...");
   const [{ data, error }, { data: progress }] = await Promise.all([
-    invokeEdge("get-download-url", { book_id: bookId }),
+    invokeEdge("get-download-url", { book_id: bookId, ...(guestAccess ? { guest_access: guestAccess } : {}) }),
     currentUser ? sb.from("reading_progress").select("position").eq("user_id", currentUser.id).eq("book_id", bookId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   if (error) { closePreview(); alert(error); return; }
@@ -3473,9 +3520,38 @@ async function sendPresenceHeartbeat() {
   } catch (_) { /* pas grave si ca rate une fois, le prochain battement rattrape */ }
 }
 
+let authorsLoaded = false;
+async function loadAuthors() {
+  if (authorsLoaded) return;
+  const grid = document.getElementById("authorsGrid");
+  const empty = document.getElementById("authorsEmpty");
+  const { data, error } = await sb.from("books").select("id, author_name, title, cover_path, cover_position").eq("status", "live").order("created_at", { ascending: false });
+  if (error) { grid.innerHTML = `<p class="text-err">Impossible de charger les auteurs.</p>`; return; }
+  const groups = new Map();
+  for (const book of data ?? []) {
+    const name = (book.author_name || "Auteur indépendant").trim();
+    const key = name.toLocaleLowerCase("fr-FR");
+    if (!groups.has(key)) groups.set(key, { name, books: [] });
+    groups.get(key).books.push(book);
+  }
+  const authors = [...groups.values()];
+  empty.classList.toggle("hidden", authors.length > 0);
+  grid.innerHTML = authors.map(author => `<button onclick="showAuthorByName(decodeURIComponent('${encodeURIComponent(author.name)}'))" class="text-left bg-paper-100 border border-ink-100 rounded-2xl p-5 hover:border-gilt-500 transition"><div class="flex items-center gap-3 mb-4"><div class="w-12 h-12 rounded-full bg-ink-700 text-white flex items-center justify-center font-display text-xl">${escapeText(author.name.charAt(0).toUpperCase())}</div><div><h2 class="font-display text-xl font-600">${escapeText(author.name)}</h2><p class="text-xs text-ink-500">${author.books.length} livre${author.books.length > 1 ? "s" : ""}</p></div></div><div class="flex gap-2">${author.books.slice(0, 4).map(b => `<div class="w-12 aspect-[2/3] rounded overflow-hidden bg-ink-700">${coverImgOrFallback(b.cover_path, b.title, "text-[8px]", b.cover_position)}</div>`).join("")}</div><p class="text-sm text-gilt-700 mt-4 underline">Voir ses livres →</p></button>`).join("");
+  authorsLoaded = true;
+}
+async function showAuthorByName(authorName) {
+  const normalized = (authorName || "").trim();
+  const { data: books, error } = await sb.from("books").select("id, title, author_name, cover_path, cover_position, price_cents, currency").eq("status", "live").ilike("author_name", normalized).order("created_at", { ascending: false });
+  if (error) { alert("Impossible de charger cette page auteur."); return; }
+  document.getElementById("authorsGrid").innerHTML = `<div class="sm:col-span-2 lg:col-span-3 mb-2"><button onclick="authorsLoaded = false; loadAuthors()" class="text-sm text-gilt-700 underline">← Tous les auteurs</button><h2 class="font-display text-3xl font-600 mt-4">${escapeText(books?.[0]?.author_name || normalized)}</h2></div>` + (books ?? []).map(b => `<button onclick="openBook('${b.id}')" class="text-left bg-paper-100 border border-ink-100 rounded-xl overflow-hidden"><div class="aspect-[2/3] bg-ink-700">${coverImgOrFallback(b.cover_path, b.title, "text-xl", b.cover_position)}</div><div class="p-3"><p class="font-medium truncate">${escapeText(b.title)}</p><p class="text-xs text-gilt-700 mt-1">${priceLabel(b.price_cents, (b.currency || "eur").toUpperCase())}</p></div></button>`).join("");
+}
+
 (async function init() {
   const isRecovery = window.location.hash.includes("type=recovery");
-  const sharedBookId = new URLSearchParams(window.location.search).get("book");
+  const params = new URLSearchParams(window.location.search);
+  const sharedBookId = params.get("book");
+  guestAccess = params.get("guest_access");
+  window.guestAccessBookId = sharedBookId;
 
   const { data: { session } } = await sb.auth.getSession();
   currentUser = session?.user ?? null;
