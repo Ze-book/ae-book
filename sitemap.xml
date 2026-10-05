@@ -2,7 +2,11 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ae-book.fr/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-05</lastmod>
+  </url>
+  <url>
+    <loc>https://ae-book.fr/?book=d53332f8-3cfc-47db-ac63-9852e5cdf76e</loc>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://ae-book.fr/?book=befd1882-9bbc-4ec9-bfb6-61fcff490a17</loc>
