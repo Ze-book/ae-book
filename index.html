@@ -1095,6 +1095,14 @@ document.getElementById("reviewForm").addEventListener("submit", async (e) => {
         <input required id="editProfilePseudo" maxlength="24" placeholder="Ton pseudo" class="w-full rounded-lg border border-ink-100 px-3 py-2 bg-white" />
         <p class="text-xs text-ink-500 mt-1">3 à 24 caractères, visible par les autres (forum, avis, fiches de tes livres). Doit être unique.</p>
       </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Bio auteur</label>
+        <textarea id="editProfileBio" maxlength="1000" rows="3" placeholder="Présente-toi aux lecteurs..." class="mt-1 w-full rounded-lg border border-ink-100 px-3 py-2 bg-white"></textarea>
+      </div>
+      <div>
+        <label class="text-xs font-medium text-ink-500 uppercase tracking-wide">Photo auteur (optionnel)</label>
+        <input type="file" accept="image/*" id="editProfileAvatar" class="mt-1 w-full text-sm" />
+      </div>
       <button type="submit" id="editProfileSubmitBtn" class="w-full bg-gilt-500 hover:bg-gilt-700 text-white font-medium py-2.5 rounded-lg transition">Enregistrer</button>
       <p id="editProfileMsg" class="text-sm"></p>
     </form>
@@ -1688,6 +1696,8 @@ function renderAuthArea() {
 
 function openEditProfileModal() {
   document.getElementById("editProfilePseudo").value = currentProfile?.display_name ?? "";
+  document.getElementById("editProfileBio").value = currentProfile?.author_bio ?? "";
+  document.getElementById("editProfileAvatar").value = "";
   document.getElementById("editProfileMsg").textContent = "";
   document.getElementById("editProfileModal").classList.remove("hidden");
 }
@@ -1707,7 +1717,11 @@ document.getElementById("editProfileForm").addEventListener("submit", async (e) 
 
   btn.disabled = true;
   btn.textContent = "Enregistrement...";
-  const { error } = await sb.from("profiles").update({ display_name: pseudo }).eq("id", currentUser.id);
+  let avatarPath = currentProfile?.author_avatar_path ?? null;
+  const avatarFile = document.getElementById("editProfileAvatar").files[0];
+  if (avatarFile) avatarPath = await uploadFileToR2(avatarFile, "cover");
+  const bio = document.getElementById("editProfileBio").value.trim();
+  const { error } = await sb.from("profiles").update({ display_name: pseudo, author_bio: bio || null, author_avatar_path: avatarPath }).eq("id", currentUser.id);
   btn.disabled = false;
   btn.textContent = "Enregistrer";
 
@@ -1716,7 +1730,7 @@ document.getElementById("editProfileForm").addEventListener("submit", async (e) 
     msg.textContent = error.code === "23505" ? "Ce pseudo est déjà pris, choisis-en un autre." : error.message;
     return;
   }
-  currentProfile = { ...currentProfile, display_name: pseudo };
+  currentProfile = { ...currentProfile, display_name: pseudo, author_bio: bio, author_avatar_path: avatarPath };
   renderAuthArea();
   msg.className = "text-sm text-ok";
   msg.textContent = "Pseudo enregistré !";
@@ -1775,6 +1789,7 @@ async function loadFeaturedBooks() {
     .select("id, title, price_cents, currency, cover_path, cover_position, category, author_name, language, free_preview_pages")
     .eq("status", "live")
     .eq("featured", true)
+    .or(`featured_until.is.null,featured_until.gt.${new Date().toISOString()}`)
     .order("created_at", { ascending: false })
     .limit(10);
   const section = document.getElementById("featuredSection");
@@ -2132,6 +2147,7 @@ async function buyBook(bookId) {
   const buyerEmail = currentUser?.email || window.prompt("Ton email pour recevoir le lien d'accès au livre :", "");
   if (!buyerEmail) return;
   trackBookEvent(bookId, "checkout_click");
+  trackBookEvent(bookId, "checkout_started");
   const roundUp = document.getElementById("roundUpCheckbox")?.checked ?? false;
   const suspendExtra = document.getElementById("suspendExtraCheckbox")?.checked ?? false;
   const { data, error } = await invokeEdge("create-checkout", {
@@ -2363,6 +2379,8 @@ async function loadSellerStats() {
   }
 
   const t = data.totals;
+  const { data: funnel } = await sb.rpc("seller_funnel_stats", { p_book_id: bookId, p_days: days });
+  const f = funnel || {};
   const conversion = t.unique_visitors > 0 ? ((t.sales / t.unique_visitors) * 100).toFixed(1).replace(".", ",") + " %" : "—";
 
   // Note moyenne : celle du livre choisi, sinon moyenne de ses livres notés
@@ -2387,6 +2405,10 @@ async function loadSellerStats() {
     statCard("Achats", t.sales, "") +
     statCard("Revenus (ta part)", money(t.revenue_cents), "") +
     statCard("Taux de conversion", conversion, "achats / visiteurs uniques") +
+    statCard("Clics Acheter", f.checkout_clicks ?? 0, "sur la fiche") +
+    statCard("Checkouts commencés", f.checkout_started ?? 0, "vers Stripe") +
+    statCard("Téléchargements", f.downloads ?? 0, "accès au fichier") +
+    statCard("Lectures", f.readers ?? 0, "ouvertures en ligne") +
     statCard("Note moyenne", ratingLabel, ratingHint) +
     statCard("Période", `${days} j`, "");
 
@@ -2453,7 +2475,7 @@ async function trackBookEvent(bookId, type) {
     if (Date.now() - Number(localStorage.getItem(key) || 0) < 30 * 60 * 1000) return;
     localStorage.setItem(key, String(Date.now()));
     await sb.from("book_events").insert({ book_id: bookId, event_type: type, visitor_id: getVisitorId() });
-    const analyticsName = { view: "book_detail_view", preview: "excerpt_open", checkout_click: "checkout_click", download: "download_started", reader: "reader_opened" }[type];
+    const analyticsName = { view: "book_detail_view", preview: "excerpt_open", checkout_click: "checkout_click", checkout_started: "checkout_started", download: "download_started", reader: "reader_opened" }[type];
     if (analyticsName) await sb.from("analytics_events").insert({ event_name: analyticsName, book_id: bookId, visitor_id: getVisitorId(), user_id: currentUser?.id ?? null });
   } catch (_) { /* le suivi ne doit jamais gêner la navigation */ }
 }
@@ -3303,8 +3325,12 @@ async function adminUnlistBook(bookId) {
 }
 
 async function adminToggleFeatured(bookId, currentlyFeatured) {
-  const { error } = await sb.from("books").update({ featured: !currentlyFeatured, updated_at: new Date().toISOString() }).eq("id", bookId);
+  const update = currentlyFeatured
+    ? { featured: false, featured_until: null, updated_at: new Date().toISOString() }
+    : { featured: true, featured_until: new Date(Date.now() + 7 * 86400000).toISOString(), updated_at: new Date().toISOString() };
+  const { error } = await sb.from("books").update(update).eq("id", bookId);
   if (error) { alert(error.message); return; }
+  featuredLoaded = false;
   loadAdminBooks();
 }
 
@@ -3541,9 +3567,13 @@ async function loadAuthors() {
 }
 async function showAuthorByName(authorName) {
   const normalized = (authorName || "").trim();
-  const { data: books, error } = await sb.from("books").select("id, title, author_name, cover_path, cover_position, price_cents, currency").eq("status", "live").ilike("author_name", normalized).order("created_at", { ascending: false });
+  const [{ data: books, error }, { data: authorProfile }] = await Promise.all([
+    sb.from("books").select("id, title, author_name, cover_path, cover_position, price_cents, currency").eq("status", "live").ilike("author_name", normalized).order("created_at", { ascending: false }),
+    sb.from("public_author_profiles").select("display_name, author_bio, author_avatar_path").ilike("display_name", normalized).maybeSingle(),
+  ]);
   if (error) { alert("Impossible de charger cette page auteur."); return; }
-  document.getElementById("authorsGrid").innerHTML = `<div class="sm:col-span-2 lg:col-span-3 mb-2"><button onclick="authorsLoaded = false; loadAuthors()" class="text-sm text-gilt-700 underline">← Tous les auteurs</button><h2 class="font-display text-3xl font-600 mt-4">${escapeText(books?.[0]?.author_name || normalized)}</h2></div>` + (books ?? []).map(b => `<button onclick="openBook('${b.id}')" class="text-left bg-paper-100 border border-ink-100 rounded-xl overflow-hidden"><div class="aspect-[2/3] bg-ink-700">${coverImgOrFallback(b.cover_path, b.title, "text-xl", b.cover_position)}</div><div class="p-3"><p class="font-medium truncate">${escapeText(b.title)}</p><p class="text-xs text-gilt-700 mt-1">${priceLabel(b.price_cents, (b.currency || "eur").toUpperCase())}</p></div></button>`).join("");
+  const avatar = authorProfile?.author_avatar_path ? `<img src="${coverUrl(authorProfile.author_avatar_path)}" class="w-20 h-20 rounded-full object-cover" />` : `<div class="w-20 h-20 rounded-full bg-ink-700 text-white flex items-center justify-center font-display text-3xl">${escapeText((books?.[0]?.author_name || normalized).charAt(0).toUpperCase())}</div>`;
+  document.getElementById("authorsGrid").innerHTML = `<div class="sm:col-span-2 lg:col-span-3 mb-2"><button onclick="authorsLoaded = false; loadAuthors()" class="text-sm text-gilt-700 underline">← Tous les auteurs</button><div class="flex items-center gap-4 mt-4">${avatar}<div><h2 class="font-display text-3xl font-600">${escapeText(books?.[0]?.author_name || normalized)}</h2><p class="text-ink-500">${escapeText(authorProfile?.author_bio || "Auteur Ae-book")}</p></div></div></div>` + (books ?? []).map(b => `<button onclick="openBook('${b.id}')" class="text-left bg-paper-100 border border-ink-100 rounded-xl overflow-hidden"><div class="aspect-[2/3] bg-ink-700">${coverImgOrFallback(b.cover_path, b.title, "text-xl", b.cover_position)}</div><div class="p-3"><p class="font-medium truncate">${escapeText(b.title)}</p><p class="text-xs text-gilt-700 mt-1">${priceLabel(b.price_cents, (b.currency || "eur").toUpperCase())}</p></div></button>`).join("");
 }
 
 (async function init() {
