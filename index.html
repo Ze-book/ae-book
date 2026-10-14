@@ -114,8 +114,75 @@
   }
   .status-dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
 </style>
-</head>
+<style id="visual-refresh">
+  :root {
+    --ae-ink: #172238;
+    --ae-ink-soft: #4D5A70;
+    --ae-paper: #FCFAF5;
+    --ae-paper-warm: #F5EFE5;
+    --ae-line: #E4DED3;
+    --ae-coral: #D96C52;
+    --ae-coral-dark: #A84636;
+    --ae-teal: #137A72;
+    --ae-shadow: 23, 34, 56;
+  }
+  html { background: var(--ae-paper-warm); scroll-behavior: smooth; }
+  body {
+    color: var(--ae-ink) !important;
+    background: radial-gradient(circle at 8% -10%, rgba(217,108,82,.10), transparent 28rem), radial-gradient(circle at 92% 10%, rgba(19,122,114,.07), transparent 24rem), var(--ae-paper-warm) !important;
+    letter-spacing: -.005em;
+  }
+  ::selection { background: rgba(217,108,82,.22); color: var(--ae-ink); }
+  ::-webkit-scrollbar-thumb { background: #C9C3B8 !important; }
+  .skip-link { position: fixed; left: 1rem; top: -5rem; z-index: 100; padding: .7rem 1rem; border-radius: .6rem; background: var(--ae-ink); color: #fff; font-weight: 700; box-shadow: 0 8px 20px rgba(var(--ae-shadow),.2); transition: top .18s ease; }
+  .skip-link:focus { top: 1rem; color: #fff !important; }
+  header.sticky { background: rgba(252,250,245,.88) !important; border-color: rgba(228,222,211,.92) !important; box-shadow: 0 8px 30px rgba(var(--ae-shadow), .06) !important; }
+  header button:first-child { letter-spacing: -.04em; }
+  header button:first-child .text-gilt-500 { color: var(--ae-coral) !important; }
+  header nav button { transition: color .18s ease, transform .18s ease; }
+  header nav button:hover { color: var(--ae-coral-dark) !important; transform: translateY(-1px); }
+  main { position: relative; }
+  main::before { content: ""; position: absolute; left: -5rem; right: -5rem; top: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(217,108,82,.24), transparent); pointer-events: none; }
+  .ribbon::before { width: 4px !important; background: var(--ae-coral) !important; }
+  .text-gilt-700 { color: var(--ae-coral-dark) !important; }
+  .text-gilt-500 { color: var(--ae-coral) !important; }
+  .text-ink-500 { color: var(--ae-ink-soft) !important; }
+  .text-ink-600 { color: #46536A !important; }
+  .text-ink-800, .text-ink-900 { color: var(--ae-ink) !important; }
+  .text-ok { color: var(--ae-teal) !important; }
+  .text-err { color: #A84636 !important; }
+  h1, h2, h3, .font-display { letter-spacing: -.035em; }
+  h1 { line-height: 1.04 !important; }
+  p { line-height: 1.62; }
+  .bg-paper-100, .bg-paper-200 { background: rgba(252,250,245,.92) !important; }
+  .border-ink-100 { border-color: var(--ae-line) !important; }
+  .bg-paper-100.border-ink-100, .bg-paper-200.border-ink-100 { box-shadow: 0 1px 2px rgba(var(--ae-shadow), .04), 0 12px 34px rgba(var(--ae-shadow), .055) !important; transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+  .bg-paper-100.border-ink-100:hover, .bg-paper-200.border-ink-100:hover { border-color: rgba(217,108,82,.34) !important; }
+  input:not([type="checkbox"]):not([type="range"]), textarea, select { border-color: var(--ae-line) !important; color: var(--ae-ink) !important; background: rgba(255,255,255,.80) !important; min-height: 2.75rem; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+  input:not([type="checkbox"]):not([type="range"]):hover, textarea:hover, select:hover { border-color: #C9B9A4 !important; }
+  input:not([type="checkbox"]):not([type="range"]):focus, textarea:focus, select:focus { border-color: var(--ae-coral) !important; box-shadow: 0 0 0 3px rgba(217,108,82,.13) !important; background: #fff !important; }
+  input::placeholder, textarea::placeholder { color: #8790A0 !important; }
+  .bg-ink-700, .bg-ink-800 { background: var(--ae-ink) !important; border: 1px solid var(--ae-ink) !important; box-shadow: 0 6px 16px rgba(var(--ae-shadow), .15) !important; }
+  .bg-ink-700:hover, .bg-ink-800:hover { background: #243552 !important; box-shadow: 0 9px 22px rgba(var(--ae-shadow), .20) !important; transform: translateY(-1px); }
+  .bg-gilt-500, .bg-gilt-700 { background: var(--ae-coral) !important; color: #351B17 !important; border: 1px solid var(--ae-coral) !important; box-shadow: 0 7px 17px rgba(168,70,54,.18) !important; }
+  .bg-gilt-500:hover, .bg-gilt-700:hover { background: var(--ae-coral-dark) !important; color: #fff !important; border-color: var(--ae-coral-dark) !important; box-shadow: 0 10px 23px rgba(168,70,54,.24) !important; transform: translateY(-1px); }
+  button { transition: color .18s ease, background-color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+  button:active { transform: translateY(1px) !important; }
+  button:disabled { transform: none !important; box-shadow: none !important; cursor: not-allowed; opacity: .65; }
+  a, button.text-gilt-700, .underline.text-gilt-700 { color: var(--ae-coral-dark) !important; text-underline-offset: 3px; }
+  a:hover, button.text-gilt-700:hover { color: #7E3329 !important; }
+  .text-ink-500.underline, .text-ink-600.underline { color: #315B88 !important; }
+  .book-card { border-radius: 1.1rem !important; overflow: hidden; background: rgba(252,250,245,.96) !important; box-shadow: 0 5px 16px rgba(var(--ae-shadow), .07) !important; }
+  .book-card:hover { transform: translateY(-6px) !important; box-shadow: 0 18px 34px rgba(var(--ae-shadow), .15) !important; }
+  .spine { box-shadow: inset -10px 0 18px rgba(0,0,0,.12), inset 4px 0 8px rgba(255,255,255,.14); }
+  #previewModal > div, #editModal > div, #reviewModal > div, #reportModal > div, #composeModal > div, #readMessageModal > div { box-shadow: 0 24px 80px rgba(4,12,24,.28); }
+  [role="alert"], .text-err { line-height: 1.45; }
+  .status-dot { box-shadow: 0 0 0 4px rgba(19,122,114,.10); }
+  @media (max-width: 640px) { main { padding-top: 1.75rem !important; } header .max-w-6xl { padding-top: .8rem !important; padding-bottom: .8rem !important; } h1 { font-size: 2rem !important; } .book-card:hover { transform: translateY(-3px) !important; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+</style>\n</head>
 <body class="font-body text-ink-800 min-h-screen">
+<a class="skip-link" href="#main-content">Aller directement au contenu</a>
 
 <!-- ============================= CONFIG ============================= -->
 <script>
@@ -129,12 +196,12 @@
 </script>
 
 <!-- ============================= HEADER ============================= -->
-<header class="sticky top-0 z-40 bg-paper-100/90 backdrop-blur border-b border-ink-100">
+<header role="banner" class="sticky top-0 z-40 bg-paper-100/90 backdrop-blur border-b border-ink-100">
   <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
-    <button onclick="showTab('marketplace')" class="font-display text-2xl font-600 text-ink-700 tracking-tight">
+    <button aria-label="Retour à la marketplace Ae-book" onclick="showTab('marketplace')" class="font-display text-2xl font-600 text-ink-700 tracking-tight">
       Ae-book<span class="text-gilt-500">.</span>
     </button>
-    <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-ink-600">
+    <nav aria-label="Navigation principale" class="hidden sm:flex items-center gap-6 text-sm font-medium text-ink-600">
       <button onclick="showTab('marketplace')" class="hover:text-ink-900">Explorer</button>
       <button onclick="showTab('authors'); loadAuthors()" class="hover:text-ink-900">Auteurs</button>
       <button onclick="showTab('seller')" class="hover:text-ink-900">Vendre un livre</button>
@@ -147,7 +214,7 @@
     </nav>
     <div id="authArea" class="flex items-center gap-3"></div>
   </div>
-  <nav class="sm:hidden flex items-center gap-1 overflow-x-auto border-t border-ink-100 text-xs font-medium text-ink-600 py-2 px-1">
+  <nav aria-label="Navigation mobile" class="sm:hidden flex items-center gap-1 overflow-x-auto border-t border-ink-100 text-xs font-medium text-ink-600 py-2 px-1">
     <button onclick="showTab('marketplace')" class="shrink-0 px-2 py-1">Explorer</button>
     <button onclick="showTab('authors'); loadAuthors()" class="shrink-0 px-2 py-1">Auteurs</button>
     <button onclick="showTab('seller')" class="shrink-0 px-2 py-1">Vendre</button>
@@ -160,7 +227,7 @@
   </nav>
 </header>
 
-<main class="max-w-6xl mx-auto px-5 py-10">
+<main id="main-content" tabindex="-1" class="max-w-6xl mx-auto px-5 py-10">
 
   <!-- ============================= AUTH TAB ============================= -->
   <section id="tab-auth" class="tab max-w-md mx-auto">
@@ -217,7 +284,7 @@
     <div class="bg-paper-100 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6">
       <div class="flex items-center justify-between mb-4">
         <p class="font-display text-xl font-600 text-ink-800">Conditions Générales d'Utilisation</p>
-        <button onclick="closeCguModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
+        <button aria-label="Fermer les conditions générales" onclick="closeCguModal()" class="text-ink-500 hover:text-ink-900 text-xl leading-none">&times;</button>
       </div>
       <div class="text-sm text-ink-600 space-y-3 leading-relaxed">
         <p><strong>1. Objet.</strong> Ae-book est une marketplace permettant à des vendeurs indépendants de publier et vendre des livres numériques (PDF/EPUB), et à des acheteurs de les acquérir et les consulter.</p>
