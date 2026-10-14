@@ -2,6 +2,10 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ae-book.fr/</loc>
+    <lastmod>2026-10-14</lastmod>
+  </url>
+  <url>
+    <loc>https://ae-book.fr/?book=899a2639-ce49-4921-b57c-b5f59ac046ac</loc>
     <lastmod>2026-10-13</lastmod>
   </url>
   <url>
@@ -18,10 +22,6 @@
   </url>
   <url>
     <loc>https://ae-book.fr/?book=bc7815b4-9b8a-4f23-b7d1-d2e8e1087651</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://ae-book.fr/?book=899a2639-ce49-4921-b57c-b5f59ac046ac</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
