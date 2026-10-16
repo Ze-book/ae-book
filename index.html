@@ -1573,6 +1573,7 @@ function replyToOpenMessage() {
 // STATE
 // ============================================================
 let currentUser = null;
+let stripeReady = false;
 let guestAccess = null;
 let currentProfile = null;
 let allLiveBooks = [];
@@ -1650,19 +1651,29 @@ function isValidIsbn(raw) {
 }
 
 async function invokeEdge(name, body) {
-  const { data, error } = await sb.functions.invoke(name, { body });
-  if (error) {
-    let message = error.message || "Une erreur est survenue.";
-    try {
-      if (error.context && typeof error.context.json === "function") {
-        const parsed = await error.context.json();
-        if (parsed?.error) message = parsed.error;
-      }
-    } catch (_) { /* pas de corps JSON exploitable, on garde le message par défaut */ }
+  try {
+    const { data, error } = await sb.functions.invoke(name, { body });
+    if (error) {
+      let message = error.message || "Une erreur est survenue.";
+      try {
+        const response = error.context;
+        if (response && typeof response.clone === "function") {
+          const parsed = await response.clone().json();
+          if (parsed?.error || parsed?.message) message = parsed.error || parsed.message;
+        }
+      } catch (_) { /* la réponse peut déjà être consommée ou indisponible */ }
+      return { data: null, error: message };
+    }
+    if (data?.error) return { data: null, error: data.error };
+    return { data, error: null };
+  } catch (caught) {
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    const message = offline
+      ? "Connexion Internet indisponible. Vérifie ta connexion puis réessaie."
+      : `La fonction « ${name} » n'est pas joignable pour le moment. Vérifie que la fonction Supabase est déployée, puis réessaie.`;
+    console.error(`[Ae-book] ${name}:`, caught);
     return { data: null, error: message };
   }
-  if (data?.error) return { data: null, error: data.error };
-  return { data, error: null };
 }
 
 // ============================================================
@@ -2283,7 +2294,7 @@ async function loadSellerData() {
   const subtext = document.getElementById("stripeStatusSubtext");
   const statusBox = document.getElementById("stripeStatusBox");
   const btn = document.getElementById("stripeConnectBtn");
-  const stripeReady = !!profile?.stripe_onboarding_complete;
+  stripeReady = !!profile?.stripe_onboarding_complete;
 
   if (stripeReady) {
     box.textContent = "Compte Stripe actif.";
@@ -2724,11 +2735,17 @@ const CHUNK_SIZE = 40 * 1024 * 1024;
 async function uploadFileToR2(file, type) {
   const { data, error } = await invokeEdge("get-upload-url", { type, filename: file.name });
   if (error) throw new Error(error);
-  const res = await fetch(data.uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-  });
+  let res;
+  try {
+    res = await fetch(data.uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    });
+  } catch (caught) {
+    console.error("[Ae-book] upload R2:", caught);
+    throw new Error("L'envoi vers le stockage a échoué. Vérifie la connexion et la configuration CORS du bucket R2.");
+  }
   if (!res.ok) throw new Error("Echec de l'upload vers le stockage.");
   return data.key;
 }
@@ -3574,20 +3591,28 @@ async function loadAdminErrors() {
   `).join("");
 }
 
-// Capture globale des erreurs JS cote client, enregistrées pour consultation
-// dans le panneau admin (mieux que rien tant qu'il n'y a pas d'outil dédié).
+// Capture globale des erreurs JS côté client. Les erreurs réseau sont
+// normalisées et le journal lui-même est protégé pour éviter les boucles
+// d'erreurs lorsque Supabase ou le stockage est momentanément indisponible.
+let lastClientErrorMessage = "";
+let lastClientErrorAt = 0;
+function recordClientError(message, context = {}) {
+  const clean = String(message || "Erreur inconnue").slice(0, 1000);
+  const now = Date.now();
+  if (clean === lastClientErrorMessage && now - lastClientErrorAt < 5000) return;
+  lastClientErrorMessage = clean;
+  lastClientErrorAt = now;
+  try {
+    sb.from("error_logs").insert({ source: "frontend", message: clean, context }).then(() => {}, () => {});
+  } catch (_) { /* ne jamais faire échouer l'interface à cause du journal */ }
+}
 window.addEventListener("error", (e) => {
-  sb.from("error_logs").insert({
-    source: "frontend",
-    message: e.message || "Erreur inconnue",
-    context: { filename: e.filename, lineno: e.lineno },
-  }).then(() => {}, () => {});
+  recordClientError(e.message || "Erreur inconnue", { filename: e.filename || "", lineno: e.lineno || 0 });
 });
 window.addEventListener("unhandledrejection", (e) => {
-  sb.from("error_logs").insert({
-    source: "frontend",
-    message: (e.reason && e.reason.message) || String(e.reason) || "Promise rejetee",
-  }).then(() => {}, () => {});
+  const reason = e.reason;
+  const message = reason?.message || String(reason || "Promise rejetée");
+  recordClientError(message, { type: "unhandledrejection" });
 });
 
 // ============================================================
@@ -3646,7 +3671,8 @@ async function showAuthorByName(authorName) {
 }
 
 (async function init() {
-  const isRecovery = window.location.hash.includes("type=recovery");
+  try {
+    const isRecovery = window.location.hash.includes("type=recovery");
   const params = new URLSearchParams(window.location.search);
   const sharedBookId = params.get("book");
   guestAccess = params.get("guest_access");
@@ -3675,6 +3701,12 @@ async function showAuthorByName(authorName) {
     await openBook(sharedBookId);
     if (!document.getElementById("tab-detail").classList.contains("active")) showTab("marketplace");
   } else {
+    showTab("marketplace");
+    }
+  } catch (caught) {
+    console.error("[Ae-book] initialisation:", caught);
+    recordClientError(caught?.message || "Échec du chargement initial", { type: "init" });
+    renderAuthArea();
     showTab("marketplace");
   }
 })();
