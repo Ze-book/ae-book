@@ -299,7 +299,7 @@
         <p><strong>9. Responsabilité.</strong> Ae-book agit en tant qu'intermédiaire technique et n'est pas éditeur des contenus vendus par les vendeurs tiers.</p>
 
         <p><strong>10. Données personnelles.</strong></p>
-        <p><em>Responsable du traitement.</em> Ae-book est responsable du traitement des données personnelles collectées dans le cadre du service. </p>
+        <p><em>Responsable du traitement.</em> Ae-book est responsable du traitement des données personnelles collectées dans le cadre du service. [À compléter : raison sociale, SIRET et adresse une fois l'immatriculation effectuée.]</p>
         <p><em>Données collectées.</em> Email et mot de passe (mot de passe jamais stocké en clair) ; nom affiché et, le cas échéant, nom de plume ; historique des achats et des livres publiés ; avis laissés ; signalements effectués. Aucune donnée bancaire n'est collectée ni stockée par Ae-book : les paiements sont gérés directement par Stripe.</p>
         <p><em>Finalités et bases légales.</em> Gestion du compte et des commandes (exécution du contrat) ; traitement des paiements et versement aux vendeurs (exécution du contrat) ; vérification technique et antivirus des fichiers publiés, prévention de la fraude (intérêt légitime) ; envoi des emails transactionnels liés à un achat, une vente ou une publication (exécution du contrat) ; respect des obligations comptables et fiscales (obligation légale).</p>
         <p><em>Destinataires des données.</em> Les données sont partagées uniquement avec les prestataires nécessaires au fonctionnement du service, agissant comme sous-traitants : Supabase (hébergement de la base de données et des fichiers), Stripe (traitement des paiements), Brevo (envoi des emails transactionnels), VirusTotal (scan antivirus des fichiers publiés, qui reçoit uniquement le fichier soumis, pas les données de compte). Ae-book ne vend ni ne loue aucune donnée à des tiers à des fins commerciales.</p>
@@ -310,7 +310,7 @@
 
         <p><strong>11. Droit applicable.</strong> Les présentes conditions sont soumises au droit français.</p>
 
-        <p class="text-xs text-ink-400 pt-3 border-t border-ink-100"></p>
+        <p class="text-xs text-ink-400 pt-3 border-t border-ink-100">Document rédigé par Claude à titre de base de départ ; à faire relire par un professionnel avant mise en ligne réelle, notamment pour compléter les informations d'immatriculation et l'adresse de contact RGPD.</p>
       </div>
     </div>
   </div>
@@ -673,6 +673,16 @@
       <div class="bg-paper-100 border border-ink-100 rounded-xl p-6">
         <p class="font-display text-lg font-600 text-ink-800 mb-4">Revenus des 30 derniers jours</p>
         <canvas id="revenueChart" height="90"></canvas>
+      </div>
+      <div class="bg-paper-100 border border-ink-100 rounded-xl p-6 mt-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p class="font-display text-lg font-600 text-ink-800">Ventes récentes</p>
+            <p class="text-sm text-ink-500">Les achats confirmés par Stripe apparaissent ici automatiquement.</p>
+          </div>
+          <button onclick="loadAdminRecentSales()" class="text-sm font-medium text-gilt-700 underline shrink-0">Actualiser</button>
+        </div>
+        <div id="adminRecentSalesList" class="space-y-2"></div>
       </div>
     </div>
 
@@ -3244,6 +3254,7 @@ function updateAdminNavVisibility() {
 }
 
 let onlineNowInterval = null;
+let adminSalesInterval = null;
 
 function showAdminSection(section) {
   ["dashboard", "books", "reports", "reviews", "messages", "errors"].forEach(s => {
@@ -3255,9 +3266,11 @@ function showAdminSection(section) {
   });
 
   clearInterval(onlineNowInterval);
+  clearInterval(adminSalesInterval);
   if (section === "dashboard") {
     loadAdminDashboard();
     onlineNowInterval = setInterval(refreshOnlineNow, 20000); // rafraîchit juste le compteur, pas tout le tableau de bord
+    adminSalesInterval = setInterval(loadAdminRecentSales, 30000); // surveille les nouvelles ventes sans recharger tout le dashboard
   }
   if (section === "books") loadAdminBooks();
   if (section === "reports") loadAdminReports();
@@ -3278,7 +3291,7 @@ async function refreshOnlineNow() {
 async function loadAdminDashboard() {
   const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
   const [purchasesRes, adminCountsRes, booksLiveRes, ratingRes, pendingReportsRes, onlineRes] = await Promise.all([
-    sb.from("purchases").select("amount_cents, platform_fee_cents, created_at, status").eq("status", "completed"),
+    sb.rpc("admin_recent_sales", { p_limit: 200 }),
     sb.rpc("admin_platform_counts"),
     sb.from("books").select("id", { count: "exact", head: true }).eq("status", "live"),
     sb.from("book_rating_stats").select("avg_rating"),
@@ -3289,6 +3302,7 @@ async function loadAdminDashboard() {
   document.getElementById("statOnlineNow").textContent = onlineRes.count ?? "0";
 
   const purchases = purchasesRes.data ?? [];
+  renderAdminRecentSales(purchases.slice(0, 50));
   const totalRevenue = purchases.reduce((sum, p) => sum + (p.platform_fee_cents || 0), 0);
   const totalVolume = purchases.reduce((sum, p) => sum + (p.amount_cents || 0), 0);
 
@@ -3344,6 +3358,41 @@ async function loadAdminDashboard() {
   });
 }
 
+function renderAdminRecentSales(sales) {
+  const list = document.getElementById("adminRecentSalesList");
+  if (!list) return;
+  if (!Array.isArray(sales)) {
+    list.innerHTML = `<p class="text-err text-sm">Impossible de charger les ventes.</p>`;
+    return;
+  }
+  if (sales.length === 0) {
+    list.innerHTML = `<p class="text-ink-500 text-sm">Aucune vente confirmée pour le moment.</p>`;
+    return;
+  }
+  list.innerHTML = sales.map(sale => `
+    <div class="bg-white/60 border border-ink-100 rounded-lg p-3 flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <p class="font-medium text-ink-800 break-words">${escapeText(sale.book_title || "Livre supprimé")}</p>
+        <p class="text-xs text-ink-500 mt-1 break-words">Acheteur : ${escapeText(sale.buyer_label || "Acheteur invité")} · Vendeur : ${escapeText(sale.seller_label || "Vendeur")}</p>
+        <p class="text-xs text-ink-400 mt-1">${new Date(sale.created_at).toLocaleString("fr-FR")}</p>
+      </div>
+      <div class="text-right shrink-0">
+        <p class="font-mono font-medium text-ok">${money(sale.amount_cents || 0)}</p>
+        <p class="text-[11px] text-ink-400">commission ${money(sale.platform_fee_cents || 0)}</p>
+      </div>
+    </div>
+  `).join("");
+}
+async function loadAdminRecentSales() {
+  const list = document.getElementById("adminRecentSalesList");
+  if (!list || !currentProfile?.is_admin) return;
+  const { data, error } = await sb.rpc("admin_recent_sales", { p_limit: 50 });
+  if (error) {
+    list.innerHTML = `<p class="text-err text-sm">Impossible de charger les ventes. Vérifie que la migration admin_sales a été appliquée.</p>`;
+    return;
+  }
+  renderAdminRecentSales(data ?? []);
+}
 async function loadAdminBooks() {
   await loadFundBanner();
   const { data: books, error } = await sb
