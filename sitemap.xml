@@ -2,19 +2,19 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ae-book.fr/</loc>
+    <lastmod>2026-10-30</lastmod>
+  </url>
+  <url>
+    <loc>https://ae-book.fr/?book=1bae0ae8-7c3c-428a-83f6-cf5b2febd89d</loc>
+    <lastmod>2026-10-29</lastmod>
+  </url>
+  <url>
+    <loc>https://ae-book.fr/?book=bed36d5a-1ea3-4654-9e66-de39e1afbb2c</loc>
     <lastmod>2026-10-29</lastmod>
   </url>
   <url>
     <loc>https://ae-book.fr/?book=c561ab93-e998-428c-a653-ca2fcea2f5f7</loc>
     <lastmod>2026-10-28</lastmod>
-  </url>
-  <url>
-    <loc>https://ae-book.fr/?book=bed36d5a-1ea3-4654-9e66-de39e1afbb2c</loc>
-    <lastmod>2026-10-24</lastmod>
-  </url>
-  <url>
-    <loc>https://ae-book.fr/?book=1bae0ae8-7c3c-428a-83f6-cf5b2febd89d</loc>
-    <lastmod>2026-10-19</lastmod>
   </url>
   <url>
     <loc>https://ae-book.fr/?book=0ecf7505-ca17-450b-aff9-fb9bafadaa2c</loc>
