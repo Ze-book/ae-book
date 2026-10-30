@@ -2746,7 +2746,12 @@ const CHUNK_SIZE = 40 * 1024 * 1024;
 // directement au stockage via une URL signee, sans passer par une Edge
 // Function (qui aurait des limites de taille genantes pour de gros fichiers).
 async function uploadFileToR2(file, type) {
-  const { data, error } = await invokeEdge("get-upload-url", { type, filename: file.name });
+  const contentType = file.type || "application/octet-stream";
+  const { data, error } = await invokeEdge("get-upload-url", {
+    type,
+    filename: file.name,
+    content_type: contentType,
+  });
   if (error) throw new Error(error);
   if (!data?.uploadUrl || !data?.key) {
     throw new Error("La fonction R2 n'a pas renvoyé d'URL d'upload. Vérifie que get-upload-url est bien déployée.");
@@ -2756,7 +2761,7 @@ async function uploadFileToR2(file, type) {
     res = await fetch(data.uploadUrl, {
       method: "PUT",
       body: file,
-      headers: { "Content-Type": file.type || "application/octet-stream" },
+      headers: { "Content-Type": contentType },
     });
   } catch (caught) {
     const signedOrigin = (() => { try { return new URL(data.uploadUrl).origin; } catch (_) { return "URL invalide"; } })();
