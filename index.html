@@ -2748,6 +2748,9 @@ const CHUNK_SIZE = 40 * 1024 * 1024;
 async function uploadFileToR2(file, type) {
   const { data, error } = await invokeEdge("get-upload-url", { type, filename: file.name });
   if (error) throw new Error(error);
+  if (!data?.uploadUrl || !data?.key) {
+    throw new Error("La fonction R2 n'a pas renvoyé d'URL d'upload. Vérifie que get-upload-url est bien déployée.");
+  }
   let res;
   try {
     res = await fetch(data.uploadUrl, {
@@ -2756,10 +2759,15 @@ async function uploadFileToR2(file, type) {
       headers: { "Content-Type": file.type || "application/octet-stream" },
     });
   } catch (caught) {
-    console.error("[Ae-book] upload R2:", caught);
-    throw new Error("L'envoi vers le stockage a échoué. Vérifie la connexion et la configuration CORS du bucket R2.");
+    const signedOrigin = (() => { try { return new URL(data.uploadUrl).origin; } catch (_) { return "URL invalide"; } })();
+    console.error("[Ae-book] upload R2:", { error: caught, origin: window.location.origin, signedOrigin, type, filename: file.name });
+    throw new Error(`Upload R2 bloqué par le navigateur. Origine du site : ${window.location.origin}. Bucket : ${type === "file" ? "ae-book-files" : "ae-book-covers"}. Ajoute cette origine exacte dans la policy CORS R2.`);
   }
-  if (!res.ok) throw new Error("Echec de l'upload vers le stockage.");
+  if (!res.ok) {
+    const details = await res.text().catch(() => "");
+    console.error("[Ae-book] réponse R2:", res.status, details.slice(0, 500));
+    throw new Error(`R2 a refusé l'upload (HTTP ${res.status}). Vérifie la policy CORS et les identifiants R2. ${details.slice(0, 180)}`);
+  }
   return data.key;
 }
 
@@ -3702,7 +3710,7 @@ async function sendPresenceHeartbeat() {
       visitor_id: getVisitorId(),
       user_id: currentUser?.id ?? null,
       last_seen: new Date().toISOString(),
-    });
+    }, { onConflict: "visitor_id" });
   } catch (_) { /* pas grave si ca rate une fois, le prochain battement rattrape */ }
 }
 
