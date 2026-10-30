@@ -2747,6 +2747,14 @@ const CHUNK_SIZE = 40 * 1024 * 1024;
 // Function (qui aurait des limites de taille genantes pour de gros fichiers).
 async function uploadFileToR2(file, type) {
   const contentType = file.type || "application/octet-stream";
+  if (type === "cover") {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    const { data, error } = await invokeEdge("upload-cover", formData);
+    if (error) throw new Error(`Envoi de la couverture impossible : ${error}`);
+    if (!data?.key) throw new Error("La fonction de couverture n'a pas renvoyé de chemin R2.");
+    return data.key;
+  }
   const { data, error } = await invokeEdge("get-upload-url", {
     type,
     filename: file.name,
