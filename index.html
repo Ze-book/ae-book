@@ -1685,6 +1685,25 @@ async function invokeEdge(name, body) {
     return { data: null, error: message };
   }
 }
+async function invokeEdgeMultipart(name, formData) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session?.access_token) return { data: null, error: "Session expirée. Reconnecte-toi puis réessaie." };
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` },
+      body: formData,
+    });
+    const text = await response.text();
+    let payload = {};
+    try { payload = text ? JSON.parse(text) : {}; } catch (_) { payload = { error: text }; }
+    if (!response.ok) return { data: null, error: payload.error || payload.message || `Erreur HTTP ${response.status}` };
+    return { data: payload, error: payload.error || null };
+  } catch (caught) {
+    console.error(`[Ae-book] ${name}:`, caught);
+    return { data: null, error: "La fonction d'envoi de couverture est inaccessible. Vérifie le déploiement de upload-cover." };
+  }
+}
 
 // ============================================================
 // AUTH
@@ -2750,7 +2769,7 @@ async function uploadFileToR2(file, type) {
   if (type === "cover") {
     const formData = new FormData();
     formData.append("file", file, file.name);
-    const { data, error } = await invokeEdge("upload-cover", formData);
+    const { data, error } = await invokeEdgeMultipart("upload-cover", formData);
     if (error) throw new Error(`Envoi de la couverture impossible : ${error}`);
     if (!data?.key) throw new Error("La fonction de couverture n'a pas renvoyé de chemin R2.");
     return data.key;
@@ -3673,7 +3692,10 @@ async function loadAdminErrors() {
         <span class="font-mono text-xs text-gilt-700">${e.source}</span>
         <span class="text-xs text-ink-400">${new Date(e.created_at).toLocaleString("fr-FR")}</span>
       </div>
-      <p class="text-ink-700 mt-1 break-words">${e.message}</p>
+      <p class="text-ink-700 mt-1 break-words">${escapeText(e.message || "Erreur inconnue")}</p>
+      ${e.context && Object.keys(e.context).length
+        ? `<p class="text-[11px] text-ink-400 mt-1 break-all">Contexte : ${escapeText(JSON.stringify(e.context))}</p>`
+        : ""}
     </div>
   `).join("");
 }
@@ -3694,7 +3716,9 @@ function recordClientError(message, context = {}) {
   } catch (_) { /* ne jamais faire échouer l'interface à cause du journal */ }
 }
 window.addEventListener("error", (e) => {
-  recordClientError(e.message || "Erreur inconnue", { filename: e.filename || "", lineno: e.lineno || 0 });
+  const base = e.message || "Erreur inconnue";
+  const location = e.filename ? ` [${e.filename}:${e.lineno || 0}:${e.colno || 0}]` : "";
+  recordClientError(`${base}${location}`, { filename: e.filename || "", lineno: e.lineno || 0, colno: e.colno || 0 });
 });
 window.addEventListener("unhandledrejection", (e) => {
   const reason = e.reason;
