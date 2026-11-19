@@ -1724,8 +1724,9 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
   const email = document.getElementById("authEmail").value.trim();
   const password = document.getElementById("authPassword").value;
   const errEl = document.getElementById("authError");
+  const infoEl = document.getElementById("authInfo");
   errEl.classList.add("hidden");
-  document.getElementById("authInfo").classList.add("hidden");
+  infoEl.classList.add("hidden");
 
   if (authMode === "signup" && !document.getElementById("authCgu").checked) {
     errEl.textContent = "Tu dois accepter les Conditions Générales d'Utilisation pour créer un compte.";
@@ -1733,7 +1734,7 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
     return;
   }
 
-  const { error } = authMode === "login"
+  const { data: authData, error } = authMode === "login"
     ? await sb.auth.signInWithPassword({ email, password })
     : await sb.auth.signUp({ email, password });
 
@@ -1742,8 +1743,25 @@ document.getElementById("authForm").addEventListener("submit", async (e) => {
     errEl.classList.remove("hidden");
     return;
   }
+  if (authMode === "signup" && !authData?.session) {
+    infoEl.innerHTML = `Compte créé. Vérifie ta boîte mail, y compris les spams, puis clique sur le lien de confirmation avant de te connecter. <button type="button" onclick="resendSignupEmail()" class="underline font-medium ml-1">Renvoyer l'e-mail</button>`;
+    infoEl.classList.remove("hidden");
+    document.getElementById("authPassword").value = "";
+    return;
+  }
   showTab("marketplace");
 });
+
+async function resendSignupEmail() {
+  const email = document.getElementById("authEmail").value.trim();
+  const infoEl = document.getElementById("authInfo");
+  if (!email) return;
+  const { error } = await sb.auth.resend({ type: "signup", email });
+  infoEl.textContent = error
+    ? `Impossible de renvoyer l'e-mail : ${error.message}`
+    : "E-mail de confirmation renvoyé. Vérifie aussi les spams.";
+  infoEl.classList.remove("hidden");
+}
 
 async function sendPasswordReset() {
   const email = document.getElementById("authEmail").value.trim();
